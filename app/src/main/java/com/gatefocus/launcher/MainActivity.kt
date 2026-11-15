@@ -164,7 +164,6 @@ class MainActivity : AppCompatActivity() {
     private fun updateDurationButtonsSelection() {
         val accentColor = ContextCompat.getColor(this, R.color.accent)
         val textPrimaryColor = ContextCompat.getColor(this, R.color.text_primary)
-        val borderColor = ContextCompat.getColor(this, R.color.card_border)
 
         val durations = listOf(15, 25, 45, 60, 90, 120)
         for (i in durationButtons.indices) {
@@ -182,15 +181,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateProtectionCardStatus() {
         val isAdmin = KioskManager.isDeviceAdmin(this)
+        val isAccessibility = FocusGuardianService.isAccessibilityServiceEnabled(this)
         val isLockActive = KioskManager.isFocusLockActive(this)
 
-        if (isAdmin && isLockActive) {
+        if (isAdmin && isAccessibility && isLockActive) {
             tvProtectionStatus.text = "🛡️ Focus Shield: Active"
             tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             tvAdminBadge.text = if (KioskManager.isDeviceOwner(this)) "DEVICE OWNER" else "LOCKED"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             scrollDurationPresets.visibility = View.GONE
-            tvTimerSubtext.text = "Focus session active. Distractions and settings are blocked."
+            tvTimerSubtext.text = "Focus session active. Settings and distractions are strictly blocked."
             btnKioskToggle.isEnabled = false
             btnKioskToggle.alpha = 0.5f
             btnKioskToggle.text = "Focus Locked 🔒"
@@ -214,6 +214,24 @@ class MainActivity : AppCompatActivity() {
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
             btnKioskToggle.text = "Activate Admin"
+            btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+            btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
+
+            btnAllowedApps.isEnabled = true
+            btnAllowedApps.alpha = 1.0f
+            btnAllowedApps.text = "Allowed Apps ⚙"
+        } else if (!isAccessibility) {
+            sessionTimer?.cancel()
+            tvProtectionStatus.text = "⚠️ App Blocker: Accessibility Required"
+            tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
+            tvAdminBadge.text = "SETUP REQUIRED"
+            tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
+            scrollDurationPresets.visibility = View.VISIBLE
+            tvTimerDisplay.text = "⏱️ Focus Duration: $selectedDurationMinutes min"
+            tvTimerSubtext.text = "Enable GateFocus in Accessibility Settings to block Settings & apps"
+            btnKioskToggle.isEnabled = true
+            btnKioskToggle.alpha = 1.0f
+            btnKioskToggle.text = "Enable App Blocker"
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
 
@@ -276,6 +294,10 @@ class MainActivity : AppCompatActivity() {
             showDeviceAdminPrompt()
             return
         }
+        if (!FocusGuardianService.isAccessibilityServiceEnabled(this)) {
+            showAccessibilityPrompt()
+            return
+        }
 
         val isLockActive = KioskManager.isFocusLockActive(this)
         if (!isLockActive) {
@@ -284,6 +306,17 @@ class MainActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "Focus session is active until the timer finishes.", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showAccessibilityPrompt() {
+        AlertDialog.Builder(this)
+            .setTitle("Accessibility Permission Required")
+            .setMessage("GateFocus needs Accessibility Service enabled to block Settings and distracting apps during your focus session. Please enable GateFocus in Accessibility Settings.")
+            .setPositiveButton("Enable Now") { _, _ ->
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun showAllowedAppsDialog() {
@@ -307,7 +340,10 @@ class MainActivity : AppCompatActivity() {
             val currentAllowed = KioskManager.getAllowedApps(this@MainActivity)
 
             val appEntries = installed
-                .filter { it.activityInfo.packageName != packageName }
+                .filter {
+                    val pkg = it.activityInfo.packageName
+                    pkg != packageName && !FocusGuardianService.isSettingsPackage(pkg)
+                }
                 .map {
                     val pkg = it.activityInfo.packageName
                     val label = it.loadLabel(pm).toString()

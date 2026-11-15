@@ -2,7 +2,6 @@ package com.gatefocus.launcher
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
-import android.content.Intent
 import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -10,7 +9,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 class FocusGuardianService : AccessibilityService() {
 
     companion object {
-        // Sensitive keywords in Settings that indicate an attempt to disable GateFocus or uninstall it
+        // Sensitive keywords that indicate an attempt to disable GateFocus, Device Admin, or Accessibility
         private val TAMPER_KEYWORDS = listOf(
             "gatefocus",
             "device admin",
@@ -22,6 +21,19 @@ class FocusGuardianService : AccessibilityService() {
             "clear data",
             "remove device owner"
         )
+
+        fun isSettingsPackage(pkg: String): Boolean {
+            val lower = pkg.lowercase()
+            return lower == "com.android.settings" ||
+                   lower == "com.samsung.android.settings" ||
+                   lower == "com.google.android.settings" ||
+                   lower.startsWith("com.android.settings.") ||
+                   lower.startsWith("com.samsung.android.settings.") ||
+                   lower.startsWith("com.google.android.settings.") ||
+                   lower.endsWith(".settings") ||
+                   lower == "com.samsung.accessibility" ||
+                   lower == "com.google.android.marvin.talkback"
+        }
 
         fun isAccessibilityServiceEnabled(context: Context): Boolean {
             val expectedServiceName = "${context.packageName}/${FocusGuardianService::class.java.canonicalName}"
@@ -46,22 +58,29 @@ class FocusGuardianService : AccessibilityService() {
         // If Focus Mode is not active, do nothing
         if (!KioskManager.isFocusLockActive(this)) return
 
-        // 1. TAMPER PROTECTION (Inspired by Mindful):
-        // Detect if user is inside Android Settings trying to disable Device Admin or Accessibility
-        if (foregroundPackage == "com.android.settings") {
-            if (isTamperAttempt()) {
-                performGlobalAction(GLOBAL_ACTION_HOME)
-                BlockedAppActivity.start(this, "Settings Tamper Protection", isTamperAttempt = true)
-                return
-            }
-            // Allow innocent settings like Wi-Fi or Bluetooth to proceed
+        // Always allow GateFocus itself
+        if (foregroundPackage == packageName) return
+
+        // 1. SETTINGS BLOCKER:
+        // Strictly block Android Settings app, subpages, and device options during Focus Mode
+        if (isSettingsPackage(foregroundPackage)) {
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            BlockedAppActivity.start(this, "Android Settings", isTamperAttempt = true)
             return
         }
 
-        // 2. APP BLOCKER (Check against allowed whitelist):
+        // 2. TAMPER PROTECTION:
+        // Detect if user is inside a package installer or system prompt attempting to disable GateFocus
+        if (isTamperAttempt()) {
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            BlockedAppActivity.start(this, "Tamper Protection", isTamperAttempt = true)
+            return
+        }
+
+        // 3. APP BLOCKER (Check against allowed whitelist):
         val allowedApps = KioskManager.getAllowedApps(this)
         if (!allowedApps.contains(foregroundPackage)) {
-            // Kick user out immediately
+            // Kick user out immediately to Home screen
             performGlobalAction(GLOBAL_ACTION_HOME)
 
             val appLabel = try {

@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
@@ -43,10 +44,10 @@ class BlockedAppActivity : AppCompatActivity() {
         val btnReturnToStudy = findViewById<MaterialButton>(R.id.btnReturnToStudy)
 
         if (isTamper) {
-            tvBlockedBadge.text = "TAMPER PROTECTION"
+            tvBlockedBadge.text = "SETTINGS RESTRICTED"
             tvBlockedBadge.setTextColor(ContextCompat.getColor(this, R.color.red))
-            tvBlockedAppName.text = "Settings Tamper Blocked"
-            tvBlockedMessage.text = "Attempt to modify Device Admin, Accessibility, or App Settings was blocked. Focus Lock remains active."
+            tvBlockedAppName.text = "$appName is Blocked"
+            tvBlockedMessage.text = "Access to Settings, Device Admin, and system controls is restricted during active study hours. Focus Lock remains active."
         } else {
             tvBlockedBadge.text = "FOCUS MODE ACTIVE"
             tvBlockedAppName.text = "$appName is Blocked"
@@ -58,6 +59,12 @@ class BlockedAppActivity : AppCompatActivity() {
         btnReturnToStudy.setOnClickListener {
             returnToHome()
         }
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                returnToHome()
+            }
+        })
     }
 
     override fun onDestroy() {

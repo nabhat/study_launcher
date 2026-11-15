@@ -94,9 +94,9 @@ object KioskManager {
         applyDeviceOwnerPolicies(activity)
         try {
             activity.startLockTask()
-            Toast.makeText(activity, "Focus Lock Active for $durationMinutes min. Distractions blocked.", Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, "Focus Lock Active for $durationMinutes min. Settings & distractions blocked.", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
-            Toast.makeText(activity, "Lock task failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "Lock task started: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -104,6 +104,20 @@ object KioskManager {
         try {
             getPrefs(activity).edit().putLong(KEY_FOCUS_END_TIME, 0L).apply()
             activity.stopLockTask()
+
+            if (isDeviceOwner(activity)) {
+                val dpm = activity.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+                val admin = ComponentName(activity, DeviceAdmin::class.java)
+                try {
+                    dpm.clearUserRestriction(admin, UserManager.DISALLOW_UNINSTALL_APPS)
+                    dpm.clearUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
+                    dpm.clearUserRestriction(admin, UserManager.DISALLOW_APPS_CONTROL)
+                    dpm.setStatusBarDisabled(admin, false)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
             Toast.makeText(activity, "Focus Lock Deactivated", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(activity, "Failed to stop lock: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -112,7 +126,9 @@ object KioskManager {
 
     fun getAllowedApps(context: Context): Set<String> {
         val custom = getPrefs(context).getStringSet(KEY_ALLOWED_APPS, null)
-        return (custom ?: DEFAULT_ALLOWED_PACKAGES).toSet()
+        val base = (custom ?: DEFAULT_ALLOWED_PACKAGES).toSet()
+        // Ensure Settings can never be in the allowed apps whitelist
+        return base.filterNot { FocusGuardianService.isSettingsPackage(it) }.toSet()
     }
 
     fun setAllowedApps(context: Context, apps: Set<String>): Boolean {
@@ -122,11 +138,13 @@ object KioskManager {
         }
         val combined = apps.toMutableSet()
         combined.addAll(DEFAULT_ALLOWED_PACKAGES)
+        combined.removeAll { FocusGuardianService.isSettingsPackage(it) }
         getPrefs(context).edit().putStringSet(KEY_ALLOWED_APPS, combined).apply()
         return true
     }
 
     fun addAllowedApp(context: Context, packageName: String) {
+        if (FocusGuardianService.isSettingsPackage(packageName)) return
         val current = getAllowedApps(context).toMutableSet()
         current.add(packageName)
         setAllowedApps(context, current)
@@ -175,6 +193,10 @@ object KioskManager {
             dpm.addUserRestriction(admin, UserManager.DISALLOW_UNINSTALL_APPS)
             // Block safe mode bypass
             dpm.addUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
+            // Block app management / force-stop in settings
+            dpm.addUserRestriction(admin, UserManager.DISALLOW_APPS_CONTROL)
+            // Block status bar expansion (pulling down quick settings)
+            dpm.setStatusBarDisabled(admin, true)
         } catch (e: Exception) {
             e.printStackTrace()
         }
