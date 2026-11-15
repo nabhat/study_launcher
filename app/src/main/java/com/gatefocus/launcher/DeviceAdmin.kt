@@ -16,7 +16,7 @@ class DeviceAdmin : DeviceAdminReceiver() {
         Toast.makeText(context, "GateFocus Device Admin Activated", Toast.LENGTH_SHORT).show()
     }
 
-    override fun onDisableRequested(context: Context, intent: Intent): CharSequence {
+    override fun onDisableRequested(context: Context, intent: Intent): CharSequence? {
         val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         if (KioskManager.isFocusLockActive(context)) {
             // Immediate Tamper Defense (Inspired by Mindful):
