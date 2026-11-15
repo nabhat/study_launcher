@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background">
+
+    <!-- Top Bar -->
+    <LinearLayout
+        android:id="@+id/pdfTopBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_alignParentTop="true"
+        android:background="@color/primary_dark"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp">
+
+        <ImageButton
+            android:id="@+id/btnPdfBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_revert"
+            app:tint="@color/white" />
+
+        <TextView
+            android:id="@+id/tvPdfName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvPageIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Page 1 / 1"
+            android:textColor="@color/accent"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- PDF Page + Drawing Canvas Stack -->
+    <FrameLayout
+        android:id="@+id/pdfContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/pdfBottomBar"
+        android:layout_below="@id/pdfTopBar"
+        android:background="@color/background">
+
+        <!-- Rendered PDF Page -->
+        <ImageView
+            android:id="@+id/ivPdfPage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:scaleType="fitCenter" />
+
+        <!-- Drawing / Solving Overlay Canvas -->
+        <com.gatefocus.launcher.DrawingView
+            android:id="@+id/drawingView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
+
+    <!-- Bottom Toolbar for Page Navigation & Math Solving Pen -->
+    <LinearLayout
+        android:id="@+id/pdfBottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_alignParentBottom="true"
+        android:background="@color/primary_dark"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp">
+
+        <Button
+            android:id="@+id/btnPrevPage"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:backgroundTint="@color/card_bg"
+            android:text="◀ Prev"
+            android:textColor="@color/text_primary" />
+
+        <Button
+            android:id="@+id/btnNextPage"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginStart="12dp"
+            android:backgroundTint="@color/card_bg"
+            android:text="Next ▶"
+            android:textColor="@color/text_primary" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- Pen Mode Toggle -->
+        <Button
+            android:id="@+id/btnPen"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:backgroundTint="@color/accent"
+            android:text="Pen ✏️"
+            android:textColor="@color/primary_dark" />
+
+        <!-- Eraser Toggle -->
+        <Button
+            android:id="@+id/btnEraser"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginStart="10dp"
+            android:backgroundTint="@color/card_bg"
+            android:text="Eraser"
+            android:textColor="@color/text_primary" />
+
+        <!-- Clear Page Drawing -->
+        <Button
+            android:id="@+id/btnClearDraw"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginStart="10dp"
+            android:backgroundTint="@color/card_bg"
+            android:text="Clear"
+            android:textColor="@color/red" />
+    </LinearLayout>
+
+</RelativeLayout>

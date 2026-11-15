@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">GateFocus</string>
+    <string name="tab_lectures">Video Lectures</string>
+    <string name="tab_workbooks">PDF Workbooks</string>
+    <string name="gate_goal">GATE Preparation Portal</string>
+    <string name="study_streak">Target: Daily Consistency</string>
+    <string name="lockdown_active">Focus Mode Active (Kiosk)</string>
+</resources>
