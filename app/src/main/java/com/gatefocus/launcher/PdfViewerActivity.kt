@@ -79,14 +79,14 @@ class PdfViewerActivity : AppCompatActivity() {
         btnNext.setOnClickListener { showNextPage() }
 
         btnPen.setOnClickListener {
-            drawingView.setPenColor(Color.parseColor("#38BDF8"))
-            btnPen.setBackgroundColor(Color.parseColor("#38BDF8"))
+            drawingView.setPenColor(Color.parseColor("#2563EB"))
+            btnPen.setBackgroundColor(Color.parseColor("#2563EB"))
             btnEraser.setBackgroundColor(Color.parseColor("#1E293B"))
         }
 
         btnEraser.setOnClickListener {
             drawingView.setEraserMode()
-            btnEraser.setBackgroundColor(Color.parseColor("#38BDF8"))
+            btnEraser.setBackgroundColor(Color.parseColor("#2563EB"))
             btnPen.setBackgroundColor(Color.parseColor("#1E293B"))
         }
 
@@ -141,6 +141,8 @@ class PdfViewerActivity : AppCompatActivity() {
                 page.height * 2,
                 Bitmap.Config.ARGB_8888
             )
+            // Initialize with pure white paper background so text is crisp and high-contrast
+            bitmap.eraseColor(Color.WHITE)
             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
 
             withContext(Dispatchers.Main) {

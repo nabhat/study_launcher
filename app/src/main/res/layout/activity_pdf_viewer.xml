@@ -51,14 +51,15 @@
         android:layout_height="match_parent"
         android:layout_above="@id/pdfBottomBar"
         android:layout_below="@id/pdfTopBar"
-        android:background="@color/background">
+        android:background="#1E293B">
 
-        <!-- Rendered PDF Page -->
+        <!-- Rendered PDF Page with solid white paper background -->
         <ImageView
             android:id="@+id/ivPdfPage"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center"
+            android:background="@color/white"
             android:scaleType="fitCenter" />
 
         <!-- Drawing / Solving Overlay Canvas -->

@@ -18,7 +18,7 @@ class DrawingView @JvmOverloads constructor(
     private var drawCanvas: Canvas? = null
     private var canvasBitmap: Bitmap? = null
 
-    private var paintColor = Color.parseColor("#38BDF8") // Accent blue
+    private var paintColor = Color.parseColor("#2563EB") // Royal blue ink
     private var strokeWidth = 5f
     private var isEraser = false
 
