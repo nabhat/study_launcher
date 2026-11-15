@@ -6,11 +6,12 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.os.Environment
 import android.provider.Settings
 import android.view.View
-import android.widget.EditText
-import android.widget.ImageButton
+import android.widget.HorizontalScrollView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -34,14 +35,20 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var rvVideos: RecyclerView
     private lateinit var rvPdfs: RecyclerView
-    private lateinit var tvEmptyState: TextView
+    private lateinit var layoutEmptyState: LinearLayout
     private lateinit var tabLayout: TabLayout
     private lateinit var btnKioskToggle: MaterialButton
     private lateinit var btnAllowedApps: MaterialButton
-    private lateinit var btnChangePin: MaterialButton
     private lateinit var tvProtectionStatus: TextView
     private lateinit var tvAdminBadge: TextView
+    private lateinit var tvTimerDisplay: TextView
+    private lateinit var tvTimerSubtext: TextView
+    private lateinit var scrollDurationPresets: HorizontalScrollView
     private lateinit var progressManager: StudyProgressManager
+
+    private var selectedDurationMinutes = 45
+    private var sessionTimer: CountDownTimer? = null
+    private val durationButtons = mutableListOf<MaterialButton>()
 
     private val videoList = mutableListOf<VideoItem>()
     private val pdfList = mutableListOf<PdfItem>()
@@ -51,17 +58,22 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         progressManager = StudyProgressManager(this)
+        selectedDurationMinutes = KioskManager.getSelectedDuration(this)
 
         rvVideos = findViewById(R.id.rvVideos)
         rvPdfs = findViewById(R.id.rvPdfs)
-        tvEmptyState = findViewById(R.id.tvEmptyState)
+        layoutEmptyState = findViewById(R.id.layoutEmptyState)
         tabLayout = findViewById(R.id.tabLayout)
         btnKioskToggle = findViewById(R.id.btnKioskToggle)
         btnAllowedApps = findViewById(R.id.btnAllowedApps)
-        btnChangePin = findViewById(R.id.btnChangePin)
         tvProtectionStatus = findViewById(R.id.tvProtectionStatus)
         tvAdminBadge = findViewById(R.id.tvAdminBadge)
-        val btnRefresh = findViewById<ImageButton>(R.id.btnRefresh)
+        tvTimerDisplay = findViewById(R.id.tvTimerDisplay)
+        tvTimerSubtext = findViewById(R.id.tvTimerSubtext)
+        scrollDurationPresets = findViewById(R.id.scrollDurationPresets)
+        val btnRefresh = findViewById<MaterialButton>(R.id.btnRefresh)
+
+        setupDurationPresets()
 
         rvVideos.layoutManager = LinearLayoutManager(this)
         rvPdfs.layoutManager = LinearLayoutManager(this)
@@ -97,10 +109,6 @@ class MainActivity : AppCompatActivity() {
             showAllowedAppsDialog()
         }
 
-        btnChangePin.setOnClickListener {
-            showChangePinDialog()
-        }
-
         checkAndRequestPermissions()
     }
 
@@ -112,32 +120,126 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        sessionTimer?.cancel()
+    }
+
+    private fun setupDurationPresets() {
+        val pairs = listOf(
+            Pair(R.id.btnDuration15, 15),
+            Pair(R.id.btnDuration25, 25),
+            Pair(R.id.btnDuration45, 45),
+            Pair(R.id.btnDuration60, 60),
+            Pair(R.id.btnDuration90, 90),
+            Pair(R.id.btnDuration120, 120)
+        )
+
+        for ((id, duration) in pairs) {
+            val btn = findViewById<MaterialButton>(id)
+            durationButtons.add(btn)
+            btn.setOnClickListener {
+                if (!KioskManager.isFocusLockActive(this)) {
+                    selectedDurationMinutes = duration
+                    KioskManager.setSelectedDuration(this, duration)
+                    updateDurationButtonsSelection()
+                    updateProtectionCardStatus()
+                }
+            }
+        }
+        updateDurationButtonsSelection()
+    }
+
+    private fun updateDurationButtonsSelection() {
+        val accentColor = ContextCompat.getColor(this, R.color.accent)
+        val textPrimaryColor = ContextCompat.getColor(this, R.color.text_primary)
+        val borderColor = ContextCompat.getColor(this, R.color.card_border)
+
+        val durations = listOf(15, 25, 45, 60, 90, 120)
+        for (i in durationButtons.indices) {
+            val btn = durationButtons[i]
+            val duration = durations[i]
+            if (duration == selectedDurationMinutes) {
+                btn.setTextColor(accentColor)
+                btn.strokeColor = ContextCompat.getColorStateList(this, R.color.accent)
+            } else {
+                btn.setTextColor(textPrimaryColor)
+                btn.strokeColor = ContextCompat.getColorStateList(this, R.color.card_border)
+            }
+        }
+    }
+
     private fun updateProtectionCardStatus() {
         val isAdmin = KioskManager.isDeviceAdmin(this)
         val isLockActive = KioskManager.isFocusLockActive(this)
 
         if (isAdmin && isLockActive) {
-            tvProtectionStatus.text = "🛡️ Tamper Protection: Active"
+            tvProtectionStatus.text = "🛡️ Focus Shield: Active"
             tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
-            tvAdminBadge.text = if (KioskManager.isDeviceOwner(this)) "DEVICE OWNER" else "ADMIN LOCKED"
+            tvAdminBadge.text = if (KioskManager.isDeviceOwner(this)) "DEVICE OWNER" else "LOCKED"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
-            btnKioskToggle.text = "Locked 🔒"
+            scrollDurationPresets.visibility = View.GONE
+            tvTimerSubtext.text = "Focus session active. Distractions and settings are blocked."
+            btnKioskToggle.text = "End Session Early ⏳"
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.red))
+            btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.red)
+
+            startLiveSessionTimer()
         } else if (!isAdmin) {
+            sessionTimer?.cancel()
             tvProtectionStatus.text = "⚠️ Device Admin: Not Activated"
             tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.red))
             tvAdminBadge.text = "UNPROTECTED"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.red))
+            scrollDurationPresets.visibility = View.VISIBLE
+            tvTimerDisplay.text = "⏱️ Focus Duration: $selectedDurationMinutes min"
+            tvTimerSubtext.text = "Activate Device Admin to enable tamper protection"
             btnKioskToggle.text = "Activate Admin"
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+            btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
         } else {
-            tvProtectionStatus.text = "🛡️ Focus Mode: Standby"
+            sessionTimer?.cancel()
+            tvProtectionStatus.text = "🛡️ Focus Shield: Standby"
             tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent))
-            tvAdminBadge.text = "ADMIN READY"
+            tvAdminBadge.text = "READY"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent))
-            btnKioskToggle.text = "Lock Device"
+            scrollDurationPresets.visibility = View.VISIBLE
+            tvTimerDisplay.text = "⏱️ Focus Duration: $selectedDurationMinutes min"
+            tvTimerSubtext.text = "Select study duration and lock distractions"
+            btnKioskToggle.text = "Start Focus (${selectedDurationMinutes}m) 🔒"
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+            btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
         }
+    }
+
+    private fun startLiveSessionTimer() {
+        sessionTimer?.cancel()
+        val remainingMillis = KioskManager.getRemainingTimeMillis(this)
+        if (remainingMillis <= 0L) {
+            updateProtectionCardStatus()
+            return
+        }
+
+        sessionTimer = object : CountDownTimer(remainingMillis, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                val totalSecs = millisUntilFinished / 1000
+                val hours = totalSecs / 3600
+                val mins = (totalSecs % 3600) / 60
+                val secs = totalSecs % 60
+                val formatted = if (hours > 0) {
+                    String.format("%02d:%02d:%02d", hours, mins, secs)
+                } else {
+                    String.format("%02d:%02d", mins, secs)
+                }
+                tvTimerDisplay.text = "⏳ $formatted remaining"
+            }
+
+            override fun onFinish() {
+                KioskManager.stopKioskMode(this@MainActivity)
+                updateProtectionCardStatus()
+                Toast.makeText(this@MainActivity, "🎉 Focus session completed! Great study session.", Toast.LENGTH_LONG).show()
+            }
+        }.start()
     }
 
     private fun handleKioskToggle() {
@@ -148,28 +250,54 @@ class MainActivity : AppCompatActivity() {
 
         val isLockActive = KioskManager.isFocusLockActive(this)
         if (!isLockActive) {
-            KioskManager.startKioskMode(this)
+            KioskManager.startFocusSession(this, selectedDurationMinutes)
             updateProtectionCardStatus()
         } else {
-            val input = EditText(this).apply {
-                hint = "Enter Master PIN"
-                inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            // Show Mindful Pause barrier instead of a PIN
+            showMindfulPauseExitDialog()
+        }
+    }
+
+    private fun showMindfulPauseExitDialog() {
+        var countdownSeconds = 30
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Mindful Pause 🧘")
+            .setMessage("Take a deep breath.\n\nGiving your brain 30 seconds to reflect before ending your focus session:\n\nPlease wait: 30s")
+            .setPositiveButton("End Session", null)
+            .setNegativeButton("Keep Studying") { d, _ ->
+                d.dismiss()
             }
-            AlertDialog.Builder(this)
-                .setTitle("Unlock Device")
-                .setMessage("Enter Master PIN to temporarily deactivate Focus Lock:")
-                .setView(input)
-                .setPositiveButton("Unlock") { _, _ ->
-                    val enteredPin = input.text.toString().trim()
-                    if (enteredPin == KioskManager.getPin(this)) {
-                        KioskManager.stopKioskMode(this)
-                        updateProtectionCardStatus()
-                    } else {
-                        Toast.makeText(this, "Incorrect PIN. Focus Lock remains active.", Toast.LENGTH_SHORT).show()
-                    }
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
+            .setCancelable(false)
+            .create()
+
+        dialog.show()
+
+        val positiveBtn = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+        positiveBtn.isEnabled = false
+
+        val pauseTimer = object : CountDownTimer(30000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                countdownSeconds = (millisUntilFinished / 1000).toInt()
+                dialog.setMessage("Take a deep breath.\n\nGiving your brain 30 seconds to reflect before ending your focus session:\n\nPlease wait: ${countdownSeconds}s")
+            }
+
+            override fun onFinish() {
+                dialog.setMessage("Pause complete. Are you sure you want to end your focus session?")
+                positiveBtn.isEnabled = true
+                positiveBtn.text = "End Focus Session"
+            }
+        }.start()
+
+        positiveBtn.setOnClickListener {
+            pauseTimer.cancel()
+            dialog.dismiss()
+            KioskManager.stopKioskMode(this)
+            updateProtectionCardStatus()
+            Toast.makeText(this, "Focus Session Ended", Toast.LENGTH_SHORT).show()
+        }
+
+        dialog.setOnDismissListener {
+            pauseTimer.cancel()
         }
     }
 
@@ -216,30 +344,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showChangePinDialog() {
-        val currentPin = KioskManager.getPin(this)
-        val input = EditText(this).apply {
-            hint = "New 4-digit PIN"
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle("Change Master PIN")
-            .setMessage("Set a new PIN to protect settings and unlocks (Current PIN: $currentPin):")
-            .setView(input)
-            .setPositiveButton("Save PIN") { _, _ ->
-                val newPin = input.text.toString().trim()
-                if (newPin.length >= 4) {
-                    KioskManager.setPin(this, newPin)
-                    Toast.makeText(this, "Master PIN updated successfully", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "PIN must be at least 4 digits", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
     private fun showDeviceAdminPrompt() {
         AlertDialog.Builder(this)
             .setTitle("Activate Device Admin")
@@ -252,7 +356,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkEmptyState(isEmpty: Boolean) {
-        tvEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        layoutEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
     }
 
     private fun loadStudyFiles() {

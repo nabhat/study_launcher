@@ -11,6 +11,7 @@ import android.os.UserManager
 import android.widget.Toast
 
 class DeviceAdmin : DeviceAdminReceiver() {
+
     override fun onEnabled(context: Context, intent: Intent) {
         super.onEnabled(context, intent)
         Toast.makeText(context, "GateFocus Device Admin Activated", Toast.LENGTH_SHORT).show()
@@ -26,7 +27,8 @@ class DeviceAdmin : DeviceAdminReceiver() {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-            return "Tamper Protection: Focus Mode is active. Enter Master PIN inside GateFocus before deactivating Device Admin."
+            val remainingMins = (KioskManager.getRemainingTimeMillis(context) / 60000) + 1
+            return "Tamper Protection: Focus Timer is currently active ($remainingMins min remaining). Please wait until your focus session ends."
         }
         return super.onDisableRequested(context, intent)
     }
@@ -39,10 +41,10 @@ class DeviceAdmin : DeviceAdminReceiver() {
 
 object KioskManager {
     private const val PREFS_NAME = "gate_focus_prefs"
-    private const val KEY_PIN = "master_pin"
-    private const val KEY_FOCUS_LOCK = "key_focus_lock_active"
+    private const val KEY_FOCUS_END_TIME = "key_focus_end_time"
+    private const val KEY_SELECTED_DURATION = "key_selected_duration"
     private const val KEY_ALLOWED_APPS = "key_allowed_apps"
-    private const val DEFAULT_PIN = "2026" // Default GATE target year PIN
+    private const val DEFAULT_DURATION_MINUTES = 45
 
     private val DEFAULT_ALLOWED_PACKAGES = setOf(
         "com.gatefocus.launcher",
@@ -60,20 +62,52 @@ object KioskManager {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
-    fun getPin(context: Context): String {
-        return getPrefs(context).getString(KEY_PIN, DEFAULT_PIN) ?: DEFAULT_PIN
+    fun getSelectedDuration(context: Context): Int {
+        return getPrefs(context).getInt(KEY_SELECTED_DURATION, DEFAULT_DURATION_MINUTES)
     }
 
-    fun setPin(context: Context, newPin: String) {
-        getPrefs(context).edit().putString(KEY_PIN, newPin).apply()
+    fun setSelectedDuration(context: Context, minutes: Int) {
+        getPrefs(context).edit().putInt(KEY_SELECTED_DURATION, minutes).apply()
+    }
+
+    fun getFocusEndTime(context: Context): Long {
+        return getPrefs(context).getLong(KEY_FOCUS_END_TIME, 0L)
+    }
+
+    fun getRemainingTimeMillis(context: Context): Long {
+        val endTime = getFocusEndTime(context)
+        val now = System.currentTimeMillis()
+        return if (endTime > now) endTime - now else 0L
     }
 
     fun isFocusLockActive(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_FOCUS_LOCK, true)
+        return getRemainingTimeMillis(context) > 0L
     }
 
-    fun setFocusLockActive(context: Context, active: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_FOCUS_LOCK, active).apply()
+    fun startFocusSession(activity: Activity, durationMinutes: Int) {
+        val endTime = System.currentTimeMillis() + (durationMinutes * 60 * 1000L)
+        getPrefs(activity).edit()
+            .putLong(KEY_FOCUS_END_TIME, endTime)
+            .putInt(KEY_SELECTED_DURATION, durationMinutes)
+            .apply()
+
+        applyDeviceOwnerPolicies(activity)
+        try {
+            activity.startLockTask()
+            Toast.makeText(activity, "Focus Lock Active for $durationMinutes min. Distractions blocked.", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(activity, "Lock task failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun stopKioskMode(activity: Activity) {
+        try {
+            getPrefs(activity).edit().putLong(KEY_FOCUS_END_TIME, 0L).apply()
+            activity.stopLockTask()
+            Toast.makeText(activity, "Focus Lock Deactivated", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(activity, "Failed to stop lock: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     fun getAllowedApps(context: Context): Set<String> {
@@ -138,27 +172,6 @@ object KioskManager {
             dpm.addUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
         } catch (e: Exception) {
             e.printStackTrace()
-        }
-    }
-
-    fun startKioskMode(activity: Activity) {
-        try {
-            setFocusLockActive(activity, true)
-            applyDeviceOwnerPolicies(activity)
-            activity.startLockTask()
-            Toast.makeText(activity, "Focus Lock Active. Distractions blocked.", Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            Toast.makeText(activity, "Lock task failed: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    fun stopKioskMode(activity: Activity) {
-        try {
-            setFocusLockActive(activity, false)
-            activity.stopLockTask()
-            Toast.makeText(activity, "Focus Lock Deactivated", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            Toast.makeText(activity, "Failed to stop lock: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 }

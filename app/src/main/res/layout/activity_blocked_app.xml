@@ -61,16 +61,28 @@
         android:gravity="center"
         android:lineSpacingExtra="4dp"
         android:paddingHorizontal="16dp"
-        android:text="This application is restricted to protect your study time. Stay disciplined and focus on your GATE goals."
+        android:text="This application is restricted during study hours. Stay disciplined and focus on your GATE exam preparation."
         android:textColor="@color/text_secondary"
         android:textSize="15sp" />
+
+    <!-- Live Timer Countdown -->
+    <TextView
+        android:id="@+id/tvBlockedTimer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:gravity="center"
+        android:text="⏳ Focus Session: Remaining Time"
+        android:textColor="@color/accent"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
     <!-- Return to Study Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnReturnToStudy"
         android:layout_width="match_parent"
         android:layout_height="54dp"
-        android:layout_marginTop="36dp"
+        android:layout_marginTop="32dp"
         android:backgroundTint="@color/accent"
         android:text="Return to Study Hub ➔"
         android:textColor="@color/primary_dark"
@@ -78,14 +90,14 @@
         android:textStyle="bold"
         app:cornerRadius="10dp" />
 
-    <!-- Emergency Unlock -->
+    <!-- Mindful Pause Unlock Button (No PIN) -->
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnEmergencyUnlock"
+        android:id="@+id/btnMindfulPause"
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:layout_marginTop="12dp"
         android:backgroundTint="@color/card_bg"
-        android:text="Emergency Unlock (Master PIN)"
+        android:text="Mindful Pause (Wait 30s to Unlock)"
         android:textColor="@color/text_secondary"
         android:textSize="14sp"
         app:cornerRadius="10dp"

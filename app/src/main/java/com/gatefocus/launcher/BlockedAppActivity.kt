@@ -3,7 +3,7 @@ package com.gatefocus.launcher
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.widget.EditText
+import android.os.CountDownTimer
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -27,6 +27,9 @@ class BlockedAppActivity : AppCompatActivity() {
         }
     }
 
+    private var sessionTimer: CountDownTimer? = null
+    private lateinit var tvBlockedTimer: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_blocked_app)
@@ -37,8 +40,9 @@ class BlockedAppActivity : AppCompatActivity() {
         val tvBlockedBadge = findViewById<TextView>(R.id.tvBlockedBadge)
         val tvBlockedAppName = findViewById<TextView>(R.id.tvBlockedAppName)
         val tvBlockedMessage = findViewById<TextView>(R.id.tvBlockedMessage)
+        tvBlockedTimer = findViewById(R.id.tvBlockedTimer)
         val btnReturnToStudy = findViewById<MaterialButton>(R.id.btnReturnToStudy)
-        val btnEmergencyUnlock = findViewById<MaterialButton>(R.id.btnEmergencyUnlock)
+        val btnMindfulPause = findViewById<MaterialButton>(R.id.btnMindfulPause)
 
         if (isTamper) {
             tvBlockedBadge.text = "TAMPER PROTECTION"
@@ -51,44 +55,101 @@ class BlockedAppActivity : AppCompatActivity() {
             tvBlockedMessage.text = "This application is restricted during study hours. Stay disciplined and focus on your GATE exam preparation."
         }
 
+        startLiveTimer()
+
         btnReturnToStudy.setOnClickListener {
-            val homeIntent = Intent(this, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            }
-            startActivity(homeIntent)
-            finish()
+            returnToHome()
         }
 
-        btnEmergencyUnlock.setOnClickListener {
-            showEmergencyUnlockDialog()
+        btnMindfulPause.setOnClickListener {
+            showMindfulPauseDialog()
         }
     }
 
-    private fun showEmergencyUnlockDialog() {
-        val input = EditText(this).apply {
-            hint = "Enter Master PIN"
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+    override fun onDestroy() {
+        super.onDestroy()
+        sessionTimer?.cancel()
+    }
+
+    private fun startLiveTimer() {
+        sessionTimer?.cancel()
+        val remainingMillis = KioskManager.getRemainingTimeMillis(this)
+        if (remainingMillis <= 0L) {
+            tvBlockedTimer.text = "Focus session completed."
+            return
         }
 
-        AlertDialog.Builder(this)
-            .setTitle("Emergency Unlock")
-            .setMessage("Enter Master PIN to temporarily disable Focus Mode:")
-            .setView(input)
-            .setPositiveButton("Unlock") { _, _ ->
-                val enteredPin = input.text.toString().trim()
-                if (enteredPin == KioskManager.getPin(this)) {
-                    KioskManager.stopKioskMode(this)
-                    Toast.makeText(this, "Focus Mode Temporarily Paused", Toast.LENGTH_SHORT).show()
-                    val homeIntent = Intent(this, MainActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    }
-                    startActivity(homeIntent)
-                    finish()
+        sessionTimer = object : CountDownTimer(remainingMillis, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                val totalSecs = millisUntilFinished / 1000
+                val hours = totalSecs / 3600
+                val mins = (totalSecs % 3600) / 60
+                val secs = totalSecs % 60
+                val formatted = if (hours > 0) {
+                    String.format("%02d:%02d:%02d", hours, mins, secs)
                 } else {
-                    Toast.makeText(this, "Incorrect PIN. Focus Mode remains active.", Toast.LENGTH_SHORT).show()
+                    String.format("%02d:%02d", mins, secs)
                 }
+                tvBlockedTimer.text = "⏳ Focus Session Active: $formatted remaining"
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+
+            override fun onFinish() {
+                tvBlockedTimer.text = "Focus session completed."
+                KioskManager.stopKioskMode(this@BlockedAppActivity)
+                Toast.makeText(this@BlockedAppActivity, "Focus timer finished! You may now exit.", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }.start()
+    }
+
+    private fun showMindfulPauseDialog() {
+        var countdownSeconds = 30
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Mindful Pause 🧘")
+            .setMessage("Take a deep breath.\n\nGiving your brain 30 seconds to reflect before breaking your focus session:\n\nPlease wait: 30s")
+            .setPositiveButton("Unlock Now", null) // Handled dynamically below
+            .setNegativeButton("Keep Studying") { d, _ ->
+                d.dismiss()
+            }
+            .setCancelable(false)
+            .create()
+
+        dialog.show()
+
+        val positiveBtn = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+        positiveBtn.isEnabled = false
+
+        val pauseTimer = object : CountDownTimer(30000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                countdownSeconds = (millisUntilFinished / 1000).toInt()
+                dialog.setMessage("Take a deep breath.\n\nGiving your brain 30 seconds to reflect before breaking your focus session:\n\nPlease wait: ${countdownSeconds}s")
+            }
+
+            override fun onFinish() {
+                dialog.setMessage("Pause complete. Are you sure you want to end Focus Mode?")
+                positiveBtn.isEnabled = true
+                positiveBtn.text = "Unlock Device"
+            }
+        }.start()
+
+        positiveBtn.setOnClickListener {
+            pauseTimer.cancel()
+            dialog.dismiss()
+            KioskManager.stopKioskMode(this)
+            Toast.makeText(this, "Focus Mode Deactivated", Toast.LENGTH_SHORT).show()
+            returnToHome()
+        }
+
+        dialog.setOnDismissListener {
+            pauseTimer.cancel()
+        }
+    }
+
+    private fun returnToHome() {
+        val homeIntent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+        startActivity(homeIntent)
+        finish()
     }
 }
