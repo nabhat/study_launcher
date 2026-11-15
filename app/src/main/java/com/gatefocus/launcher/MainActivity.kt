@@ -238,6 +238,24 @@ class MainActivity : AppCompatActivity() {
             btnAllowedApps.isEnabled = true
             btnAllowedApps.alpha = 1.0f
             btnAllowedApps.text = "Allowed Apps ⚙"
+        } else if (!isDefaultLauncher()) {
+            sessionTimer?.cancel()
+            tvProtectionStatus.text = "⚠️ Home Launcher: Not Set"
+            tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
+            tvAdminBadge.text = "SET AS HOME"
+            tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
+            scrollDurationPresets.visibility = View.VISIBLE
+            tvTimerDisplay.text = "⏱️ Focus Duration: $selectedDurationMinutes min"
+            tvTimerSubtext.text = "Set GateFocus as default Home launcher to prevent navigation glitching"
+            btnKioskToggle.isEnabled = true
+            btnKioskToggle.alpha = 1.0f
+            btnKioskToggle.text = "Set Default Launcher 🏠"
+            btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+            btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
+
+            btnAllowedApps.isEnabled = true
+            btnAllowedApps.alpha = 1.0f
+            btnAllowedApps.text = "Allowed Apps ⚙"
         } else {
             sessionTimer?.cancel()
             tvProtectionStatus.text = "🛡️ Focus Shield: Standby"
@@ -298,6 +316,10 @@ class MainActivity : AppCompatActivity() {
             showAccessibilityPrompt()
             return
         }
+        if (!isDefaultLauncher()) {
+            showSetDefaultLauncherPrompt()
+            return
+        }
 
         val isLockActive = KioskManager.isFocusLockActive(this)
         if (!isLockActive) {
@@ -306,6 +328,47 @@ class MainActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "Focus session is active until the timer finishes.", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun isDefaultLauncher(): Boolean {
+        return try {
+            val intent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+            }
+            val resolveInfo = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            resolveInfo?.activityInfo?.packageName == packageName
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun promptSetDefaultLauncher() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = getSystemService(android.app.role.RoleManager::class.java)
+            if (roleManager != null && roleManager.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME)) {
+                if (!roleManager.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)) {
+                    val intent = roleManager.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME)
+                    startActivity(intent)
+                    return
+                }
+            }
+        }
+        val intent = Intent(Settings.ACTION_HOME_SETTINGS)
+        startActivity(intent)
+    }
+
+    private fun showSetDefaultLauncherPrompt() {
+        AlertDialog.Builder(this)
+            .setTitle("Set as Default Launcher")
+            .setMessage("To ensure distraction blocking runs without glitching and pressing Home stays inside your study hub, set GateFocus as your default Home launcher.")
+            .setPositiveButton("Set as Default") { _, _ ->
+                promptSetDefaultLauncher()
+            }
+            .setNegativeButton("Continue Anyway") { _, _ ->
+                KioskManager.startFocusSession(this, selectedDurationMinutes)
+                updateProtectionCardStatus()
+            }
+            .show()
     }
 
     private fun showAccessibilityPrompt() {

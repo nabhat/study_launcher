@@ -2,11 +2,16 @@ package com.gatefocus.launcher
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 
 class FocusGuardianService : AccessibilityService() {
+
+    private var lastBlockedPkg = ""
+    private var lastBlockTime = 0L
 
     companion object {
         // Sensitive keywords that indicate an attempt to disable GateFocus, Device Admin, or Accessibility
@@ -48,8 +53,8 @@ class FocusGuardianService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
-        val eventType = event.eventType
-        if (eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+        // Only evaluate on window transitions to prevent high-frequency loop glitching
+        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             return
         }
 
@@ -61,42 +66,77 @@ class FocusGuardianService : AccessibilityService() {
         // Always allow GateFocus itself
         if (foregroundPackage == packageName) return
 
+        // Handle Home Launcher apps:
+        // If a 3rd party launcher (e.g. Samsung One UI) opens while Focus Lock is active:
+        // Do NOT call GLOBAL_ACTION_HOME (which would create an infinite re-launch loop).
+        // Instead, smoothly redirect directly to GateFocus MainActivity.
+        if (isHomeLauncherPackage(foregroundPackage)) {
+            val now = System.currentTimeMillis()
+            if (now - lastBlockTime > 1000L || lastBlockedPkg != foregroundPackage) {
+                lastBlockTime = now
+                lastBlockedPkg = foregroundPackage
+                val gateIntent = Intent(this, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                }
+                startActivity(gateIntent)
+            }
+            return
+        }
+
         // 1. SETTINGS BLOCKER:
         // Strictly block Android Settings app, subpages, and device options during Focus Mode
         if (isSettingsPackage(foregroundPackage)) {
-            performGlobalAction(GLOBAL_ACTION_HOME)
-            BlockedAppActivity.start(this, "Android Settings", isTamperAttempt = true)
+            val now = System.currentTimeMillis()
+            if (now - lastBlockTime > 800L || lastBlockedPkg != foregroundPackage) {
+                lastBlockTime = now
+                lastBlockedPkg = foregroundPackage
+                BlockedAppActivity.start(this, "Android Settings", isTamperAttempt = true)
+            }
             return
         }
 
         // 2. TAMPER PROTECTION:
         // Detect if user is inside a package installer or system prompt attempting to disable GateFocus
         if (isTamperAttempt()) {
-            performGlobalAction(GLOBAL_ACTION_HOME)
-            BlockedAppActivity.start(this, "Tamper Protection", isTamperAttempt = true)
+            val now = System.currentTimeMillis()
+            if (now - lastBlockTime > 800L || lastBlockedPkg != foregroundPackage) {
+                lastBlockTime = now
+                lastBlockedPkg = foregroundPackage
+                BlockedAppActivity.start(this, "Tamper Protection", isTamperAttempt = true)
+            }
             return
         }
 
         // 3. APP BLOCKER (Check against allowed whitelist):
         val allowedApps = KioskManager.getAllowedApps(this)
         if (!allowedApps.contains(foregroundPackage)) {
-            // Kick user out immediately to Home screen
-            performGlobalAction(GLOBAL_ACTION_HOME)
+            val now = System.currentTimeMillis()
+            if (now - lastBlockTime > 800L || lastBlockedPkg != foregroundPackage) {
+                lastBlockTime = now
+                lastBlockedPkg = foregroundPackage
 
-            val appLabel = try {
-                val appInfo = packageManager.getApplicationInfo(foregroundPackage, 0)
-                packageManager.getApplicationLabel(appInfo).toString()
-            } catch (e: Exception) {
-                "Restricted App"
+                val appLabel = try {
+                    val appInfo = packageManager.getApplicationInfo(foregroundPackage, 0)
+                    packageManager.getApplicationLabel(appInfo).toString()
+                } catch (e: Exception) {
+                    "Restricted App"
+                }
+
+                BlockedAppActivity.start(this, appLabel, isTamperAttempt = false)
             }
-
-            BlockedAppActivity.start(this, appLabel, isTamperAttempt = false)
         }
     }
 
-    private fun isTamperAttempt(): Boolean {
-        val rootNode = rootInActiveWindow ?: return false
-        return checkNodeForKeywords(rootNode)
+    private fun isHomeLauncherPackage(pkg: String): Boolean {
+        return try {
+            val intent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+            }
+            val homeApps = packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            homeApps.any { it.activityInfo.packageName == pkg }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun checkNodeForKeywords(node: AccessibilityNodeInfo): Boolean {
@@ -115,6 +155,11 @@ class FocusGuardianService : AccessibilityService() {
             }
         }
         return false
+    }
+
+    private fun isTamperAttempt(): Boolean {
+        val rootNode = rootInActiveWindow ?: return false
+        return checkNodeForKeywords(rootNode)
     }
 
     override fun onInterrupt() {}
