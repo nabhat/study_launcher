@@ -106,7 +106,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnAllowedApps.setOnClickListener {
-            showAllowedAppsDialog()
+            if (KioskManager.isFocusLockActive(this)) {
+                Toast.makeText(this, "Allowed apps list is locked while Focus Session is active.", Toast.LENGTH_SHORT).show()
+            } else {
+                showAllowedAppsDialog()
+            }
         }
 
         checkAndRequestPermissions()
@@ -184,6 +188,10 @@ class MainActivity : AppCompatActivity() {
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.red))
             btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.red)
 
+            btnAllowedApps.isEnabled = false
+            btnAllowedApps.alpha = 0.4f
+            btnAllowedApps.text = "Apps Locked 🔒"
+
             startLiveSessionTimer()
         } else if (!isAdmin) {
             sessionTimer?.cancel()
@@ -197,6 +205,10 @@ class MainActivity : AppCompatActivity() {
             btnKioskToggle.text = "Activate Admin"
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
+
+            btnAllowedApps.isEnabled = true
+            btnAllowedApps.alpha = 1.0f
+            btnAllowedApps.text = "Allowed Apps ⚙"
         } else {
             sessionTimer?.cancel()
             tvProtectionStatus.text = "🛡️ Focus Shield: Standby"
@@ -209,6 +221,10 @@ class MainActivity : AppCompatActivity() {
             btnKioskToggle.text = "Start Focus (${selectedDurationMinutes}m) 🔒"
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
+
+            btnAllowedApps.isEnabled = true
+            btnAllowedApps.alpha = 1.0f
+            btnAllowedApps.text = "Allowed Apps ⚙"
         }
     }
 
@@ -302,7 +318,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAllowedAppsDialog() {
+        if (KioskManager.isFocusLockActive(this)) {
+            Toast.makeText(this, "Allowed apps cannot be modified while Focus Session is active.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         lifecycleScope.launch(Dispatchers.IO) {
+            if (KioskManager.isFocusLockActive(this@MainActivity)) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Allowed apps cannot be modified while Focus Session is active.", Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
             val pm = packageManager
             val intent = Intent(Intent.ACTION_MAIN, null).apply {
                 addCategory(Intent.CATEGORY_LAUNCHER)
@@ -335,8 +362,12 @@ class MainActivity : AppCompatActivity() {
                                 newAllowed.add(appEntries[i].first)
                             }
                         }
-                        KioskManager.setAllowedApps(this@MainActivity, newAllowed)
-                        Toast.makeText(this@MainActivity, "Whitelist updated", Toast.LENGTH_SHORT).show()
+                        val saved = KioskManager.setAllowedApps(this@MainActivity, newAllowed)
+                        if (saved) {
+                            Toast.makeText(this@MainActivity, "Whitelist updated", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@MainActivity, "Cannot modify whitelist during active focus session.", Toast.LENGTH_SHORT).show()
+                        }
                     }
                     .setNegativeButton("Cancel", null)
                     .show()

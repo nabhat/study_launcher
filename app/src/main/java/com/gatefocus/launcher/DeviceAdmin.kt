@@ -115,10 +115,15 @@ object KioskManager {
         return (custom ?: DEFAULT_ALLOWED_PACKAGES).toSet()
     }
 
-    fun setAllowedApps(context: Context, apps: Set<String>) {
+    fun setAllowedApps(context: Context, apps: Set<String>): Boolean {
+        if (isFocusLockActive(context)) {
+            // Whitelist cannot be edited once the focus lock is active
+            return false
+        }
         val combined = apps.toMutableSet()
         combined.addAll(DEFAULT_ALLOWED_PACKAGES)
         getPrefs(context).edit().putStringSet(KEY_ALLOWED_APPS, combined).apply()
+        return true
     }
 
     fun addAllowedApp(context: Context, packageName: String) {
