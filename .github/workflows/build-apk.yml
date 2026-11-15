@@ -28,11 +28,11 @@ jobs:
       run: |
         if [ -f "build.gradle.kts" ]; then
           echo "Building from repository root..."
-          gradle assembleDebug --no-daemon
+          gradle assembleDebug --no-daemon --stacktrace
         elif [ -d "study_launcher" ]; then
           echo "Building from study_launcher subfolder..."
           cd study_launcher
-          gradle assembleDebug --no-daemon
+          gradle assembleDebug --no-daemon --stacktrace
         else
           echo "Could not find build.gradle.kts in root or study_launcher!"
           exit 1

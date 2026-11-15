@@ -8,6 +8,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 
 class BlockedAppActivity : AppCompatActivity() {
@@ -41,7 +42,7 @@ class BlockedAppActivity : AppCompatActivity() {
 
         if (isTamper) {
             tvBlockedBadge.text = "TAMPER PROTECTION"
-            tvBlockedBadge.setTextColor(getColor(R.color.red))
+            tvBlockedBadge.setTextColor(ContextCompat.getColor(this, R.color.red))
             tvBlockedAppName.text = "Settings Tamper Blocked"
             tvBlockedMessage.text = "Attempt to modify Device Admin, Accessibility, or App Settings was blocked. Focus Lock remains active."
         } else {

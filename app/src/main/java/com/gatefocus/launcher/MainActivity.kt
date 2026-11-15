@@ -118,25 +118,25 @@ class MainActivity : AppCompatActivity() {
 
         if (isAdmin && isLockActive) {
             tvProtectionStatus.text = "🛡️ Tamper Protection: Active"
-            tvProtectionStatus.setTextColor(getColor(R.color.accent_green))
+            tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             tvAdminBadge.text = if (KioskManager.isDeviceOwner(this)) "DEVICE OWNER" else "ADMIN LOCKED"
-            tvAdminBadge.setTextColor(getColor(R.color.accent_green))
+            tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             btnKioskToggle.text = "Locked 🔒"
-            btnKioskToggle.setTextColor(getColor(R.color.red))
+            btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.red))
         } else if (!isAdmin) {
             tvProtectionStatus.text = "⚠️ Device Admin: Not Activated"
-            tvProtectionStatus.setTextColor(getColor(R.color.red))
+            tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.red))
             tvAdminBadge.text = "UNPROTECTED"
-            tvAdminBadge.setTextColor(getColor(R.color.red))
+            tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.red))
             btnKioskToggle.text = "Activate Admin"
-            btnKioskToggle.setTextColor(getColor(R.color.accent_green))
+            btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
         } else {
             tvProtectionStatus.text = "🛡️ Focus Mode: Standby"
-            tvProtectionStatus.setTextColor(getColor(R.color.accent))
+            tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent))
             tvAdminBadge.text = "ADMIN READY"
-            tvAdminBadge.setTextColor(getColor(R.color.accent))
+            tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent))
             btnKioskToggle.text = "Lock Device"
-            btnKioskToggle.setTextColor(getColor(R.color.accent_green))
+            btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
         }
     }
 
@@ -191,7 +191,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 .sortedBy { it.second.lowercase() }
 
-            val labels = appEntries.map { it.second }.toTypedArray()
+            val labels: Array<CharSequence> = Array(appEntries.size) { i -> appEntries[i].second }
             val checked = appEntries.map { it.third }.toBooleanArray()
 
             withContext(Dispatchers.Main) {
