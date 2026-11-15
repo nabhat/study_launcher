@@ -249,10 +249,21 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:background="@color/background"
+        android:background="@color/card_bg"
         app:tabIndicatorColor="@color/accent"
         app:tabSelectedTextColor="@color/accent"
-        app:tabTextColor="@color/text_secondary" />
+        app:tabTextColor="@color/text_secondary">
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📹 Video Lectures" />
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📄 PDF Workbooks" />
+    </com.google.android.material.tabs.TabLayout>
 
     <!-- Storage Path Info -->
     <TextView

@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rvVideos: RecyclerView
     private lateinit var rvPdfs: RecyclerView
     private lateinit var layoutEmptyState: LinearLayout
+    private lateinit var tvEmptyMessage: TextView
     private lateinit var tabLayout: TabLayout
     private lateinit var btnKioskToggle: MaterialButton
     private lateinit var btnAllowedApps: MaterialButton
@@ -63,6 +64,7 @@ class MainActivity : AppCompatActivity() {
         rvVideos = findViewById(R.id.rvVideos)
         rvPdfs = findViewById(R.id.rvPdfs)
         layoutEmptyState = findViewById(R.id.layoutEmptyState)
+        tvEmptyMessage = findViewById(R.id.tvEmptyMessage)
         tabLayout = findViewById(R.id.tabLayout)
         btnKioskToggle = findViewById(R.id.btnKioskToggle)
         btnAllowedApps = findViewById(R.id.btnAllowedApps)
@@ -77,6 +79,11 @@ class MainActivity : AppCompatActivity() {
 
         rvVideos.layoutManager = LinearLayoutManager(this)
         rvPdfs.layoutManager = LinearLayoutManager(this)
+
+        if (tabLayout.tabCount == 0) {
+            tabLayout.addTab(tabLayout.newTab().setText("📹 Video Lectures"))
+            tabLayout.addTab(tabLayout.newTab().setText("📄 PDF Workbooks"))
+        }
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
@@ -388,6 +395,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkEmptyState(isEmpty: Boolean) {
         layoutEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        if (isEmpty) {
+            tvEmptyMessage.text = if (tabLayout.selectedTabPosition == 0) {
+                "No video lectures found in /GATE/"
+            } else {
+                "No PDF workbooks found in /GATE/"
+            }
+        }
     }
 
     private fun loadStudyFiles() {
