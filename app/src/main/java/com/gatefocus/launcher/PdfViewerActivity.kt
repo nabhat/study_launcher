@@ -24,7 +24,9 @@ class PdfViewerActivity : AppCompatActivity() {
 
     private lateinit var ivPdfPage: ImageView
     private lateinit var drawingView: DrawingView
+    private lateinit var zoomContainer: ZoomableFrameLayout
     private lateinit var tvPageIndicator: TextView
+    private lateinit var btnZoomReset: Button
     private lateinit var progressManager: StudyProgressManager
 
     private var pdfRenderer: PdfRenderer? = null
@@ -62,6 +64,7 @@ class PdfViewerActivity : AppCompatActivity() {
 
         ivPdfPage = findViewById(R.id.ivPdfPage)
         drawingView = findViewById(R.id.drawingView)
+        zoomContainer = findViewById(R.id.zoomContainer)
         tvPageIndicator = findViewById(R.id.tvPageIndicator)
         val tvPdfName = findViewById<TextView>(R.id.tvPdfName)
         val btnBack = findViewById<ImageButton>(R.id.btnPdfBack)
@@ -71,6 +74,9 @@ class PdfViewerActivity : AppCompatActivity() {
 
         val btnPrev = findViewById<Button>(R.id.btnPrevPage)
         val btnNext = findViewById<Button>(R.id.btnNextPage)
+        val btnZoomIn = findViewById<Button>(R.id.btnZoomIn)
+        val btnZoomOut = findViewById<Button>(R.id.btnZoomOut)
+        btnZoomReset = findViewById(R.id.btnZoomReset)
         val btnPen = findViewById<Button>(R.id.btnPen)
         val btnEraser = findViewById<Button>(R.id.btnEraser)
         val btnClear = findViewById<Button>(R.id.btnClearDraw)
@@ -78,13 +84,32 @@ class PdfViewerActivity : AppCompatActivity() {
         btnPrev.setOnClickListener { showPreviousPage() }
         btnNext.setOnClickListener { showNextPage() }
 
+        btnZoomIn.setOnClickListener { zoomContainer.zoomIn() }
+        btnZoomOut.setOnClickListener { zoomContainer.zoomOut() }
+        btnZoomReset.setOnClickListener { zoomContainer.resetZoom() }
+
+        zoomContainer.onZoomChanged = { scale ->
+            val percent = (scale * 100).toInt()
+            btnZoomReset.text = "$percent%"
+        }
+
         btnPen.setOnClickListener {
-            drawingView.setPenColor(Color.parseColor("#2563EB"))
-            btnPen.setBackgroundColor(Color.parseColor("#2563EB"))
-            btnEraser.setBackgroundColor(Color.parseColor("#1E293B"))
+            if (zoomContainer.isPenActive) {
+                // Toggle off to Pan & Zoom mode
+                zoomContainer.isPenActive = false
+                btnPen.setBackgroundColor(Color.parseColor("#1E293B"))
+                Toast.makeText(this, "✋ Pan & Zoom mode active", Toast.LENGTH_SHORT).show()
+            } else {
+                zoomContainer.isPenActive = true
+                drawingView.setPenColor(Color.parseColor("#2563EB"))
+                btnPen.setBackgroundColor(Color.parseColor("#2563EB"))
+                btnEraser.setBackgroundColor(Color.parseColor("#1E293B"))
+                Toast.makeText(this, "✏️ Pen active (pinch with 2 fingers to zoom)", Toast.LENGTH_SHORT).show()
+            }
         }
 
         btnEraser.setOnClickListener {
+            zoomContainer.isPenActive = true
             drawingView.setEraserMode()
             btnEraser.setBackgroundColor(Color.parseColor("#2563EB"))
             btnPen.setBackgroundColor(Color.parseColor("#1E293B"))
@@ -161,6 +186,7 @@ class PdfViewerActivity : AppCompatActivity() {
     private fun showNextPage() {
         if (currentPageIndex < totalPages - 1) {
             currentPageIndex++
+            zoomContainer.resetZoom()
             renderCurrentPage()
         }
     }
@@ -168,6 +194,7 @@ class PdfViewerActivity : AppCompatActivity() {
     private fun showPreviousPage() {
         if (currentPageIndex > 0) {
             currentPageIndex--
+            zoomContainer.resetZoom()
             renderCurrentPage()
         }
     }

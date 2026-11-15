@@ -44,32 +44,41 @@
             android:textSize="14sp" />
     </LinearLayout>
 
-    <!-- PDF Page + Drawing Canvas Stack -->
-    <FrameLayout
-        android:id="@+id/pdfContainer"
+    <!-- PDF Zoomable Viewport Stack -->
+    <com.gatefocus.launcher.ZoomableFrameLayout
+        android:id="@+id/zoomContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/pdfBottomBar"
         android:layout_below="@id/pdfTopBar"
-        android:background="#1E293B">
+        android:background="#1E293B"
+        android:clipChildren="true"
+        android:clipToPadding="true">
 
-        <!-- Rendered PDF Page with solid white paper background -->
-        <ImageView
-            android:id="@+id/ivPdfPage"
+        <!-- Unified Content Container (scales and pans together) -->
+        <FrameLayout
+            android:id="@+id/pdfContentStack"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:background="@color/white"
-            android:scaleType="fitCenter" />
+            android:layout_height="match_parent">
 
-        <!-- Drawing / Solving Overlay Canvas -->
-        <com.gatefocus.launcher.DrawingView
-            android:id="@+id/drawingView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-    </FrameLayout>
+            <!-- Rendered PDF Page with solid white paper background -->
+            <ImageView
+                android:id="@+id/ivPdfPage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:background="@color/white"
+                android:scaleType="fitCenter" />
 
-    <!-- Bottom Toolbar for Page Navigation & Math Solving Pen -->
+            <!-- Drawing / Solving Overlay Canvas -->
+            <com.gatefocus.launcher.DrawingView
+                android:id="@+id/drawingView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </FrameLayout>
+    </com.gatefocus.launcher.ZoomableFrameLayout>
+
+    <!-- Bottom Toolbar for Page Navigation, Zoom Controls & Math Solving Pen -->
     <LinearLayout
         android:id="@+id/pdfBottomBar"
         android:layout_width="match_parent"
@@ -77,7 +86,7 @@
         android:layout_alignParentBottom="true"
         android:background="@color/primary_dark"
         android:gravity="center_vertical"
-        android:paddingHorizontal="20dp">
+        android:paddingHorizontal="16dp">
 
         <Button
             android:id="@+id/btnPrevPage"
@@ -91,7 +100,7 @@
             android:id="@+id/btnNextPage"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="8dp"
             android:backgroundTint="@color/card_bg"
             android:text="Next ▶"
             android:textColor="@color/text_primary" />
@@ -101,21 +110,55 @@
             android:layout_height="1dp"
             android:layout_weight="1" />
 
+        <!-- Zoom Controls -->
+        <Button
+            android:id="@+id/btnZoomOut"
+            android:layout_width="44dp"
+            android:layout_height="40dp"
+            android:backgroundTint="@color/card_bg"
+            android:text="➖"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnZoomReset"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:backgroundTint="@color/card_bg"
+            android:text="100%"
+            android:textColor="@color/accent"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnZoomIn"
+            android:layout_width="44dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:backgroundTint="@color/card_bg"
+            android:text="➕"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+
+        <View
+            android:layout_width="16dp"
+            android:layout_height="1dp" />
+
         <!-- Pen Mode Toggle -->
         <Button
             android:id="@+id/btnPen"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
-            android:backgroundTint="@color/accent"
-            android:text="Pen ✏️"
-            android:textColor="@color/primary_dark" />
+            android:backgroundTint="@color/card_bg"
+            android:text="✏️ Pen"
+            android:textColor="@color/text_primary" />
 
         <!-- Eraser Toggle -->
         <Button
             android:id="@+id/btnEraser"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="6dp"
             android:backgroundTint="@color/card_bg"
             android:text="Eraser"
             android:textColor="@color/text_primary" />
@@ -125,7 +168,7 @@
             android:id="@+id/btnClearDraw"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="6dp"
             android:backgroundTint="@color/card_bg"
             android:text="Clear"
             android:textColor="@color/red" />
