@@ -14,7 +14,7 @@ class FocusGuardianService : AccessibilityService() {
     private var lastBlockTime = 0L
 
     companion object {
-        // Sensitive keywords that indicate an attempt to disable GateFocus, Device Admin, or Accessibility
+        // Sensitive keywords that indicate an attempt to disable GateFocus, Device Admin, Accessibility, or enter Safe Mode
         private val TAMPER_KEYWORDS = listOf(
             "gatefocus",
             "device admin",
@@ -24,7 +24,10 @@ class FocusGuardianService : AccessibilityService() {
             "disable",
             "clear storage",
             "clear data",
-            "remove device owner"
+            "remove device owner",
+            "safe mode",
+            "safe boot",
+            "restart in safe mode"
         )
 
         fun isSettingsPackage(pkg: String): Boolean {
