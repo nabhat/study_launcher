@@ -18,8 +18,11 @@
    - Opens GATE question banks and workbooks.
    - Has a built-in touch/stylus math solver canvas overlay (`Pen`, `Eraser`, `Clear`).
    - Automatically saves handwritten derivations and notes per page.
-4. **Unbreakable Focus Lock (Device Admin & Kiosk)**:
-   - Locks the tablet into Kiosk mode (`startLockTask()`), blocking the notification pull-down shade and navigation buttons.
+4. **Unbreakable Focus Lock & Tamper Protection (Inspired by Mindful)**:
+   - Locks the tablet into Kiosk mode (`startLockTask()`), blocking notifications, recent apps, and uninstallation.
+   - **Tamper Protection**: If you try to open Android Settings to disable Device Admin or Accessibility, GateFocus intercepts the screen and blocks it.
+   - **Deactivation Lockdown**: If an admin disable is attempted, `dpm.lockNow()` immediately locks the tablet screen.
+   - **Custom Study Whitelist**: Easily choose which apps (e.g. Samsung Notes, Calculator, VLC) are allowed during study, while everything else is blocked.
    - Protected by a Master PIN (Default: `2026`).
 
 ---

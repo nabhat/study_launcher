@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="32dp">
+
+    <!-- Shield Icon Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="88dp"
+        android:layout_height="88dp"
+        android:backgroundTint="@color/card_bg"
+        app:cardCornerRadius="44dp"
+        app:cardElevation="4dp"
+        app:strokeColor="@color/card_border"
+        app:strokeWidth="1dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="🛡️"
+            android:textSize="40sp" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Header Badge -->
+    <TextView
+        android:id="@+id/tvBlockedBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:background="#2238BDF8"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="4dp"
+        android:text="FOCUS MODE ACTIVE"
+        android:textColor="@color/accent"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <!-- App Name -->
+    <TextView
+        android:id="@+id/tvBlockedAppName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:text="App Blocked"
+        android:textColor="@color/text_primary"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <!-- Message -->
+    <TextView
+        android:id="@+id/tvBlockedMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp"
+        android:paddingHorizontal="16dp"
+        android:text="This application is restricted to protect your study time. Stay disciplined and focus on your GATE goals."
+        android:textColor="@color/text_secondary"
+        android:textSize="15sp" />
+
+    <!-- Return to Study Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnReturnToStudy"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:layout_marginTop="36dp"
+        android:backgroundTint="@color/accent"
+        android:text="Return to Study Hub ➔"
+        android:textColor="@color/primary_dark"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:cornerRadius="10dp" />
+
+    <!-- Emergency Unlock -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnEmergencyUnlock"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="12dp"
+        android:backgroundTint="@color/card_bg"
+        android:text="Emergency Unlock (Master PIN)"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        app:cornerRadius="10dp"
+        app:strokeColor="@color/card_border"
+        app:strokeWidth="1dp" />
+
+</LinearLayout>

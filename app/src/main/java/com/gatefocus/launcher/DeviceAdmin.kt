@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.UserManager
 import android.widget.Toast
 
 class DeviceAdmin : DeviceAdminReceiver() {
@@ -16,7 +17,18 @@ class DeviceAdmin : DeviceAdminReceiver() {
     }
 
     override fun onDisableRequested(context: Context, intent: Intent): CharSequence {
-        return "Warning: Disabling Device Admin will remove GATE Focus Mode restrictions."
+        val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        if (KioskManager.isFocusLockActive(context)) {
+            // Immediate Tamper Defense (Inspired by Mindful):
+            // Lock screen immediately to prevent user from completing deactivation!
+            try {
+                dpm.lockNow()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return "Tamper Protection: Focus Mode is active. Enter Master PIN inside GateFocus before deactivating Device Admin."
+        }
+        return super.onDisableRequested(context, intent)
     }
 
     override fun onDisabled(context: Context, intent: Intent) {
@@ -29,7 +41,20 @@ object KioskManager {
     private const val PREFS_NAME = "gate_focus_prefs"
     private const val KEY_PIN = "master_pin"
     private const val KEY_FOCUS_LOCK = "key_focus_lock_active"
+    private const val KEY_ALLOWED_APPS = "key_allowed_apps"
     private const val DEFAULT_PIN = "2026" // Default GATE target year PIN
+
+    private val DEFAULT_ALLOWED_PACKAGES = setOf(
+        "com.gatefocus.launcher",
+        "com.samsung.android.honeyboard",       // Samsung Keyboard
+        "com.google.android.inputmethod.latin",  // Gboard
+        "android",                               // Android Framework
+        "com.android.systemui",                  // System UI Elements
+        "com.samsung.android.app.notes",        // Samsung Notes
+        "org.videolan.vlc",                      // VLC Media Player
+        "com.sec.android.app.popupcalculator",  // Samsung Calculator
+        "com.google.android.calculator"         // Google Calculator
+    )
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -49,6 +74,29 @@ object KioskManager {
 
     fun setFocusLockActive(context: Context, active: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_FOCUS_LOCK, active).apply()
+    }
+
+    fun getAllowedApps(context: Context): Set<String> {
+        val custom = getPrefs(context).getStringSet(KEY_ALLOWED_APPS, null)
+        return (custom ?: DEFAULT_ALLOWED_PACKAGES).toSet()
+    }
+
+    fun setAllowedApps(context: Context, apps: Set<String>) {
+        val combined = apps.toMutableSet()
+        combined.addAll(DEFAULT_ALLOWED_PACKAGES)
+        getPrefs(context).edit().putStringSet(KEY_ALLOWED_APPS, combined).apply()
+    }
+
+    fun addAllowedApp(context: Context, packageName: String) {
+        val current = getAllowedApps(context).toMutableSet()
+        current.add(packageName)
+        setAllowedApps(context, current)
+    }
+
+    fun removeAllowedApp(context: Context, packageName: String) {
+        val current = getAllowedApps(context).toMutableSet()
+        current.remove(packageName)
+        setAllowedApps(context, current)
     }
 
     fun isDeviceAdmin(context: Context): Boolean {
@@ -80,12 +128,14 @@ object KioskManager {
         val admin = ComponentName(context, DeviceAdmin::class.java)
 
         try {
-            // Whitelist GateFocus for seamless LockTask Mode
-            dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
+            // Whitelist GateFocus and allowed apps for LockTask Mode
+            val whitelist = getAllowedApps(context).toTypedArray()
+            dpm.setLockTaskPackages(admin, whitelist)
+
             // Block uninstallation
-            dpm.addUserRestriction(admin, android.os.UserManager.DISALLOW_UNINSTALL_APPS)
+            dpm.addUserRestriction(admin, UserManager.DISALLOW_UNINSTALL_APPS)
             // Block safe mode bypass
-            dpm.addUserRestriction(admin, android.os.UserManager.DISALLOW_SAFE_BOOT)
+            dpm.addUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
         } catch (e: Exception) {
             e.printStackTrace()
         }
