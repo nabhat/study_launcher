@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
@@ -42,7 +41,6 @@ class BlockedAppActivity : AppCompatActivity() {
         val tvBlockedMessage = findViewById<TextView>(R.id.tvBlockedMessage)
         tvBlockedTimer = findViewById(R.id.tvBlockedTimer)
         val btnReturnToStudy = findViewById<MaterialButton>(R.id.btnReturnToStudy)
-        val btnMindfulPause = findViewById<MaterialButton>(R.id.btnMindfulPause)
 
         if (isTamper) {
             tvBlockedBadge.text = "TAMPER PROTECTION"
@@ -59,10 +57,6 @@ class BlockedAppActivity : AppCompatActivity() {
 
         btnReturnToStudy.setOnClickListener {
             returnToHome()
-        }
-
-        btnMindfulPause.setOnClickListener {
-            showMindfulPauseDialog()
         }
     }
 
@@ -100,49 +94,6 @@ class BlockedAppActivity : AppCompatActivity() {
                 finish()
             }
         }.start()
-    }
-
-    private fun showMindfulPauseDialog() {
-        var countdownSeconds = 30
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("Mindful Pause 🧘")
-            .setMessage("Take a deep breath.\n\nGiving your brain 30 seconds to reflect before breaking your focus session:\n\nPlease wait: 30s")
-            .setPositiveButton("Unlock Now", null) // Handled dynamically below
-            .setNegativeButton("Keep Studying") { d, _ ->
-                d.dismiss()
-            }
-            .setCancelable(false)
-            .create()
-
-        dialog.show()
-
-        val positiveBtn = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-        positiveBtn.isEnabled = false
-
-        val pauseTimer = object : CountDownTimer(30000, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
-                countdownSeconds = (millisUntilFinished / 1000).toInt()
-                dialog.setMessage("Take a deep breath.\n\nGiving your brain 30 seconds to reflect before breaking your focus session:\n\nPlease wait: ${countdownSeconds}s")
-            }
-
-            override fun onFinish() {
-                dialog.setMessage("Pause complete. Are you sure you want to end Focus Mode?")
-                positiveBtn.isEnabled = true
-                positiveBtn.text = "Unlock Device"
-            }
-        }.start()
-
-        positiveBtn.setOnClickListener {
-            pauseTimer.cancel()
-            dialog.dismiss()
-            KioskManager.stopKioskMode(this)
-            Toast.makeText(this, "Focus Mode Deactivated", Toast.LENGTH_SHORT).show()
-            returnToHome()
-        }
-
-        dialog.setOnDismissListener {
-            pauseTimer.cancel()
-        }
     }
 
     private fun returnToHome() {

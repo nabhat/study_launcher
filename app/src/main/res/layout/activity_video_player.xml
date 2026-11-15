@@ -14,4 +14,36 @@
         app:show_buffering="always"
         app:use_controller="true" />
 
+    <!-- Left Seek Indicator (Rewind 10s) -->
+    <TextView
+        android:id="@+id/tvSeekLeft"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|start"
+        android:layout_marginStart="72dp"
+        android:background="@drawable/bg_seek_indicator"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="14dp"
+        android:text="⏪ 10s"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <!-- Right Seek Indicator (Forward 10s) -->
+    <TextView
+        android:id="@+id/tvSeekRight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|end"
+        android:layout_marginEnd="72dp"
+        android:background="@drawable/bg_seek_indicator"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="14dp"
+        android:text="⏩ 10s"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
 </FrameLayout>

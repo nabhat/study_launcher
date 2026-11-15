@@ -191,9 +191,11 @@ class MainActivity : AppCompatActivity() {
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             scrollDurationPresets.visibility = View.GONE
             tvTimerSubtext.text = "Focus session active. Distractions and settings are blocked."
-            btnKioskToggle.text = "End Session Early ⏳"
-            btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.red))
-            btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.red)
+            btnKioskToggle.isEnabled = false
+            btnKioskToggle.alpha = 0.5f
+            btnKioskToggle.text = "Focus Locked 🔒"
+            btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+            btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
 
             btnAllowedApps.isEnabled = false
             btnAllowedApps.alpha = 0.4f
@@ -209,6 +211,8 @@ class MainActivity : AppCompatActivity() {
             scrollDurationPresets.visibility = View.VISIBLE
             tvTimerDisplay.text = "⏱️ Focus Duration: $selectedDurationMinutes min"
             tvTimerSubtext.text = "Activate Device Admin to enable tamper protection"
+            btnKioskToggle.isEnabled = true
+            btnKioskToggle.alpha = 1.0f
             btnKioskToggle.text = "Activate Admin"
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
@@ -225,6 +229,8 @@ class MainActivity : AppCompatActivity() {
             scrollDurationPresets.visibility = View.VISIBLE
             tvTimerDisplay.text = "⏱️ Focus Duration: $selectedDurationMinutes min"
             tvTimerSubtext.text = "Select study duration and lock distractions"
+            btnKioskToggle.isEnabled = true
+            btnKioskToggle.alpha = 1.0f
             btnKioskToggle.text = "Start Focus (${selectedDurationMinutes}m) 🔒"
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
@@ -276,51 +282,7 @@ class MainActivity : AppCompatActivity() {
             KioskManager.startFocusSession(this, selectedDurationMinutes)
             updateProtectionCardStatus()
         } else {
-            // Show Mindful Pause barrier instead of a PIN
-            showMindfulPauseExitDialog()
-        }
-    }
-
-    private fun showMindfulPauseExitDialog() {
-        var countdownSeconds = 30
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("Mindful Pause 🧘")
-            .setMessage("Take a deep breath.\n\nGiving your brain 30 seconds to reflect before ending your focus session:\n\nPlease wait: 30s")
-            .setPositiveButton("End Session", null)
-            .setNegativeButton("Keep Studying") { d, _ ->
-                d.dismiss()
-            }
-            .setCancelable(false)
-            .create()
-
-        dialog.show()
-
-        val positiveBtn = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-        positiveBtn.isEnabled = false
-
-        val pauseTimer = object : CountDownTimer(30000, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
-                countdownSeconds = (millisUntilFinished / 1000).toInt()
-                dialog.setMessage("Take a deep breath.\n\nGiving your brain 30 seconds to reflect before ending your focus session:\n\nPlease wait: ${countdownSeconds}s")
-            }
-
-            override fun onFinish() {
-                dialog.setMessage("Pause complete. Are you sure you want to end your focus session?")
-                positiveBtn.isEnabled = true
-                positiveBtn.text = "End Focus Session"
-            }
-        }.start()
-
-        positiveBtn.setOnClickListener {
-            pauseTimer.cancel()
-            dialog.dismiss()
-            KioskManager.stopKioskMode(this)
-            updateProtectionCardStatus()
-            Toast.makeText(this, "Focus Session Ended", Toast.LENGTH_SHORT).show()
-        }
-
-        dialog.setOnDismissListener {
-            pauseTimer.cancel()
+            Toast.makeText(this, "Focus session is active until the timer finishes.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -420,6 +382,17 @@ class MainActivity : AppCompatActivity() {
 
             for (dir in searchDirs) {
                 scanDirectory(dir, videos, pdfs)
+            }
+
+            // Natural alphanumeric sort (e.g. 01, 02, 10...)
+            videos.sortWith { v1, v2 ->
+                val folderCmp = NaturalOrderComparator.compare(v1.playlistName, v2.playlistName)
+                if (folderCmp != 0) folderCmp
+                else NaturalOrderComparator.compare(v1.file.name, v2.file.name)
+            }
+
+            pdfs.sortWith { p1, p2 ->
+                NaturalOrderComparator.compare(p1.file.name, p2.file.name)
             }
 
             withContext(Dispatchers.Main) {
@@ -528,5 +501,34 @@ class MainActivity : AppCompatActivity() {
                 .setNegativeButton("Later", null)
                 .show()
         }
+    }
+}
+
+object NaturalOrderComparator : Comparator<String> {
+    private val SPLIT_REGEX = Regex("(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)")
+
+    override fun compare(s1: String?, s2: String?): Int {
+        if (s1 == null && s2 == null) return 0
+        if (s1 == null) return -1
+        if (s2 == null) return 1
+
+        val parts1 = s1.split(SPLIT_REGEX)
+        val parts2 = s2.split(SPLIT_REGEX)
+        val minLen = minOf(parts1.size, parts2.size)
+
+        for (i in 0 until minLen) {
+            val p1 = parts1[i]
+            val p2 = parts2[i]
+            val num1 = p1.toLongOrNull()
+            val num2 = p2.toLongOrNull()
+
+            val diff = if (num1 != null && num2 != null) {
+                num1.compareTo(num2)
+            } else {
+                p1.compareTo(p2, ignoreCase = true)
+            }
+            if (diff != 0) return diff
+        }
+        return parts1.size.compareTo(parts2.size)
     }
 }

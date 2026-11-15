@@ -1,13 +1,18 @@
 package com.gatefocus.launcher
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
@@ -22,10 +27,16 @@ class VideoPlayerActivity : AppCompatActivity() {
     private var player: ExoPlayer? = null
     private lateinit var playerView: PlayerView
     private lateinit var progressManager: StudyProgressManager
+    private lateinit var tvSeekLeft: TextView
+    private lateinit var tvSeekRight: TextView
+
     private var videoPath: String = ""
     private var currentSpeedIndex = 0
     private val speeds = arrayOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
     private val speedLabels = arrayOf("1.0x", "1.25x", "1.5x", "1.75x", "2.0x")
+
+    private val seekHandler = Handler(Looper.getMainLooper())
+    private var seekRunnable: Runnable? = null
 
     companion object {
         const val EXTRA_VIDEO_PATH = "extra_video_path"
@@ -40,6 +51,7 @@ class VideoPlayerActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -50,11 +62,15 @@ class VideoPlayerActivity : AppCompatActivity() {
 
         progressManager = StudyProgressManager(this)
         playerView = findViewById(R.id.playerView)
+        tvSeekLeft = findViewById(R.id.tvSeekLeft)
+        tvSeekRight = findViewById(R.id.tvSeekRight)
 
         // Setup custom controller buttons
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
         val tvTitle = findViewById<TextView>(R.id.tvVideoTitle)
         val btnSpeed = findViewById<Button>(R.id.btnSpeed)
+        val btnRew = findViewById<ImageButton>(R.id.exo_rew)
+        val btnFfwd = findViewById<ImageButton>(R.id.exo_ffwd)
 
         btnBack?.setOnClickListener { finish() }
         tvTitle?.text = videoTitle
@@ -66,7 +82,94 @@ class VideoPlayerActivity : AppCompatActivity() {
             btnSpeed.text = speedLabels[currentSpeedIndex]
         }
 
+        btnRew?.setOnClickListener {
+            rewind10s()
+        }
+
+        btnFfwd?.setOnClickListener {
+            forward10s()
+        }
+
+        setupGestures()
         initializePlayer()
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupGestures() {
+        val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent): Boolean = true
+
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                if (playerView.isControllerFullyVisible) {
+                    playerView.hideController()
+                } else {
+                    playerView.showController()
+                }
+                return true
+            }
+
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                val width = playerView.width
+                if (width > 0) {
+                    if (e.x < width / 2) {
+                        rewind10s()
+                    } else {
+                        forward10s()
+                    }
+                }
+                return true
+            }
+        })
+
+        playerView.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+        }
+    }
+
+    private fun rewind10s() {
+        val exo = player ?: return
+        val current = exo.currentPosition
+        val newPos = (current - 10000L).coerceAtLeast(0L)
+        exo.seekTo(newPos)
+        showSeekFeedback(tvSeekLeft, "⏪ 10s")
+    }
+
+    private fun forward10s() {
+        val exo = player ?: return
+        val current = exo.currentPosition
+        val duration = exo.duration
+        val target = current + 10000L
+        val newPos = if (duration > 0) target.coerceAtMost(duration) else target
+        exo.seekTo(newPos)
+        showSeekFeedback(tvSeekRight, "⏩ 10s")
+    }
+
+    private fun showSeekFeedback(view: TextView, text: String) {
+        seekRunnable?.let { seekHandler.removeCallbacks(it) }
+        tvSeekLeft.visibility = View.GONE
+        tvSeekRight.visibility = View.GONE
+
+        view.text = text
+        view.alpha = 1.0f
+        view.scaleX = 0.85f
+        view.scaleY = 0.85f
+        view.visibility = View.VISIBLE
+
+        view.animate()
+            .scaleX(1.0f)
+            .scaleY(1.0f)
+            .setDuration(120)
+            .start()
+
+        val runnable = Runnable {
+            view.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction { view.visibility = View.GONE }
+                .start()
+        }
+        seekRunnable = runnable
+        seekHandler.postDelayed(runnable, 650)
     }
 
     private fun initializePlayer() {
@@ -81,7 +184,11 @@ class VideoPlayerActivity : AppCompatActivity() {
             return
         }
 
-        val exo = ExoPlayer.Builder(this).build()
+        val exo = ExoPlayer.Builder(this)
+            .setSeekBackIncrementMs(10000)
+            .setSeekForwardIncrementMs(10000)
+            .build()
+
         player = exo
         playerView.player = exo
 
@@ -128,6 +235,7 @@ class VideoPlayerActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        seekRunnable?.let { seekHandler.removeCallbacks(it) }
         saveCurrentProgress()
         player?.release()
         player = null
