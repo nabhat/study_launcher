@@ -125,6 +125,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (KioskManager.isDeviceOwner(this)) {
+            KioskManager.applyDeviceOwnerPolicies(this)
+        }
         updateProtectionCardStatus()
         if (hasStoragePermission()) {
             loadStudyFiles()
