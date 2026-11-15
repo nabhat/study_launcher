@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M0,0h108v108h-108z" />
+    <!-- Graduation Cap / Focus Target icon -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M54,32L18,48l36,16l36,-16L54,32z" />
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M30,56.5v15.5c0,13.25 10.75,24 24,24s24,-10.75 24,-24V56.5L54,67L30,56.5z" />
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M84,50v22h4v-22z" />
+</vector>

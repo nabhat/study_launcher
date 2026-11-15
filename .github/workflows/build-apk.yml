@@ -18,21 +18,28 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
 
-    - name: Grant execute permission for gradlew
-      run: |
-        if [ -f "study_launcher/gradlew" ]; then
-          chmod +x study_launcher/gradlew
-        fi
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: '8.7'
 
     - name: Build APK with Gradle
-      working-directory: study_launcher
       run: |
-        gradle assembleDebug --no-daemon
+        if [ -f "build.gradle.kts" ]; then
+          echo "Building from repository root..."
+          gradle assembleDebug --no-daemon
+        elif [ -d "study_launcher" ]; then
+          echo "Building from study_launcher subfolder..."
+          cd study_launcher
+          gradle assembleDebug --no-daemon
+        else
+          echo "Could not find build.gradle.kts in root or study_launcher!"
+          exit 1
+        fi
 
     - name: Upload GateFocus APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: GateFocus-StudyLauncher-APK
-        path: study_launcher/app/build/outputs/apk/debug/app-debug.apk
+        path: "**/build/outputs/apk/debug/*.apk"
