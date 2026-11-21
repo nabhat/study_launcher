@@ -4,12 +4,16 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
+import android.media.session.MediaSession
+import android.media.session.PlaybackState
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.view.GestureDetector
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -21,6 +25,8 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
@@ -34,6 +40,7 @@ import kotlin.math.roundToInt
 class VideoPlayerActivity : AppCompatActivity() {
 
     private var player: ExoPlayer? = null
+    private var mediaSession: MediaSession? = null
     private lateinit var playerView: PlayerView
     private lateinit var progressManager: StudyProgressManager
     private lateinit var tvSeekLeft: TextView
@@ -356,9 +363,15 @@ class VideoPlayerActivity : AppCompatActivity() {
             return
         }
 
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+            .build()
+
         val exo = ExoPlayer.Builder(this)
             .setSeekBackIncrementMs(10000)
             .setSeekForwardIncrementMs(10000)
+            .setAudioAttributes(audioAttributes, true)
             .build()
 
         player = exo
@@ -376,13 +389,134 @@ class VideoPlayerActivity : AppCompatActivity() {
         exo.prepare()
         exo.playWhenReady = true
 
+        setupMediaSession()
+
         exo.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY || playbackState == Player.STATE_ENDED) {
                     saveCurrentProgress()
                 }
+                updatePlaybackState()
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                updatePlaybackState()
             }
         })
+    }
+
+    private fun setupMediaSession() {
+        val session = MediaSession(this, "GateFocusPlayer").apply {
+            setCallback(object : MediaSession.Callback() {
+                override fun onPlay() {
+                    player?.play()
+                }
+
+                override fun onPause() {
+                    player?.pause()
+                }
+
+                override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
+                    val keyEvent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        mediaButtonIntent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        mediaButtonIntent.getParcelableExtra(Intent.EXTRA_KEY_EVENT)
+                    }
+                    if (keyEvent?.action == KeyEvent.ACTION_DOWN) {
+                        when (keyEvent.keyCode) {
+                            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                            KeyEvent.KEYCODE_HEADSETHOOK -> {
+                                togglePlayPause()
+                                return true
+                            }
+                            KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                                player?.play()
+                                return true
+                            }
+                            KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                                player?.pause()
+                                return true
+                            }
+                            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
+                                rewind10s()
+                                return true
+                            }
+                            KeyEvent.KEYCODE_MEDIA_NEXT -> {
+                                forward10s()
+                                return true
+                            }
+                        }
+                    }
+                    return super.onMediaButtonEvent(mediaButtonIntent)
+                }
+            })
+            @Suppress("DEPRECATION")
+            setFlags(
+                MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or
+                MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS
+            )
+            isActive = true
+        }
+        mediaSession = session
+        updatePlaybackState()
+    }
+
+    private fun togglePlayPause() {
+        val exo = player ?: return
+        if (exo.isPlaying) {
+            exo.pause()
+        } else {
+            exo.play()
+        }
+    }
+
+    private fun updatePlaybackState() {
+        val exo = player ?: return
+        val isPlaying = exo.isPlaying
+        val stateBuilder = PlaybackState.Builder()
+            .setActions(
+                PlaybackState.ACTION_PLAY or
+                PlaybackState.ACTION_PAUSE or
+                PlaybackState.ACTION_PLAY_PAUSE or
+                PlaybackState.ACTION_FAST_FORWARD or
+                PlaybackState.ACTION_REWIND
+            )
+            .setState(
+                if (isPlaying) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED,
+                exo.currentPosition,
+                exo.playbackParameters.speed
+            )
+        mediaSession?.setPlaybackState(stateBuilder.build())
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                KeyEvent.KEYCODE_HEADSETHOOK -> {
+                    togglePlayPause()
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                    player?.play()
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                    player?.pause()
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
+                    rewind10s()
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_NEXT -> {
+                    forward10s()
+                    return true
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     private var sessionStartTimeMs = 0L
@@ -426,7 +560,11 @@ class VideoPlayerActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         seekRunnable?.let { seekHandler.removeCallbacks(it) }
+        hudRunnable?.let { hudHandler.removeCallbacks(it) }
         saveCurrentProgress()
+        mediaSession?.isActive = false
+        mediaSession?.release()
+        mediaSession = null
         player?.release()
         player = null
     }
