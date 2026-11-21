@@ -3,16 +3,23 @@ package com.gatefocus.launcher
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
@@ -21,6 +28,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.gatefocus.launcher.data.StudyProgressManager
 import java.io.File
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 class VideoPlayerActivity : AppCompatActivity() {
 
@@ -30,6 +39,20 @@ class VideoPlayerActivity : AppCompatActivity() {
     private lateinit var tvSeekLeft: TextView
     private lateinit var tvSeekRight: TextView
 
+    // VLC Gesture HUD Elements
+    private lateinit var layoutBrightnessIndicator: LinearLayout
+    private lateinit var ivBrightnessIcon: ImageView
+    private lateinit var pbBrightness: ProgressBar
+    private lateinit var tvBrightnessPercent: TextView
+
+    private lateinit var layoutVolumeIndicator: LinearLayout
+    private lateinit var ivVolumeIcon: ImageView
+    private lateinit var pbVolume: ProgressBar
+    private lateinit var tvVolumePercent: TextView
+
+    private lateinit var audioManager: AudioManager
+    private var maxVolume = 15
+
     private var videoPath: String = ""
     private var currentSpeedIndex = 0
     private val speeds = arrayOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
@@ -37,6 +60,9 @@ class VideoPlayerActivity : AppCompatActivity() {
 
     private val seekHandler = Handler(Looper.getMainLooper())
     private var seekRunnable: Runnable? = null
+
+    private val hudHandler = Handler(Looper.getMainLooper())
+    private var hudRunnable: Runnable? = null
 
     companion object {
         const val EXTRA_VIDEO_PATH = "extra_video_path"
@@ -65,12 +91,24 @@ class VideoPlayerActivity : AppCompatActivity() {
         tvSeekLeft = findViewById(R.id.tvSeekLeft)
         tvSeekRight = findViewById(R.id.tvSeekRight)
 
+        // VLC Gesture HUD Elements
+        layoutBrightnessIndicator = findViewById(R.id.layoutBrightnessIndicator)
+        ivBrightnessIcon = findViewById(R.id.ivBrightnessIcon)
+        pbBrightness = findViewById(R.id.pbBrightness)
+        tvBrightnessPercent = findViewById(R.id.tvBrightnessPercent)
+
+        layoutVolumeIndicator = findViewById(R.id.layoutVolumeIndicator)
+        ivVolumeIcon = findViewById(R.id.ivVolumeIcon)
+        pbVolume = findViewById(R.id.pbVolume)
+        tvVolumePercent = findViewById(R.id.tvVolumePercent)
+
         // Setup custom controller buttons
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
         val tvTitle = findViewById<TextView>(R.id.tvVideoTitle)
         val btnSpeed = findViewById<Button>(R.id.btnSpeed)
         val btnRew = findViewById<ImageButton>(R.id.exo_rew)
         val btnFfwd = findViewById<ImageButton>(R.id.exo_ffwd)
+        val btnBluetooth = findViewById<ImageButton>(R.id.btnBluetooth)
 
         btnBack?.setOnClickListener { finish() }
         tvTitle?.text = videoTitle
@@ -90,12 +128,37 @@ class VideoPlayerActivity : AppCompatActivity() {
             forward10s()
         }
 
+        btnBluetooth?.setOnClickListener {
+            FocusGuardianService.grantBluetoothGrace(60_000L)
+            try {
+                val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
+                Toast.makeText(this, "Connect your Bluetooth headphones", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Cannot open Bluetooth settings: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         setupGestures()
         initializePlayer()
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setupGestures() {
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+
+        val touchSlop = ViewConfiguration.get(this).scaledTouchSlop.toFloat()
+        var startX = 0f
+        var startY = 0f
+        var hasScrolled = false
+        var isAdjustingBrightness = false
+        var isAdjustingVolume = false
+        var initialBrightness = 0.5f
+        var initialVolumeFraction = 0.5f
+
         val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean = true
 
@@ -122,8 +185,126 @@ class VideoPlayerActivity : AppCompatActivity() {
         })
 
         playerView.setOnTouchListener { _, event ->
-            gestureDetector.onTouchEvent(event)
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    startX = event.x
+                    startY = event.y
+                    hasScrolled = false
+                    isAdjustingBrightness = false
+                    isAdjustingVolume = false
+
+                    // Cache current window brightness
+                    val winBrightness = window.attributes.screenBrightness
+                    initialBrightness = if (winBrightness >= 0f) {
+                        winBrightness
+                    } else {
+                        try {
+                            Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 255.0f
+                        } catch (e: Exception) {
+                            0.5f
+                        }
+                    }.coerceIn(0.01f, 1.0f)
+
+                    // Cache current volume fraction
+                    val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                    initialVolumeFraction = (currentVol.toFloat() / maxVolume).coerceIn(0f, 1f)
+
+                    gestureDetector.onTouchEvent(event)
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    val deltaX = event.x - startX
+                    val deltaY = event.y - startY
+
+                    if (!hasScrolled) {
+                        if (abs(deltaY) > touchSlop * 1.5f && abs(deltaY) > abs(deltaX)) {
+                            hasScrolled = true
+                            if (startX < playerView.width / 2) {
+                                isAdjustingBrightness = true
+                            } else {
+                                isAdjustingVolume = true
+                            }
+                        }
+                    }
+
+                    if (hasScrolled) {
+                        // In screen coordinates: swiping UP gives negative deltaY.
+                        // So -deltaY increases brightness/volume.
+                        val height = playerView.height.coerceAtLeast(1)
+                        val deltaFraction = (-deltaY) / (height * 0.75f)
+
+                        if (isAdjustingBrightness) {
+                            val newBrightness = (initialBrightness + deltaFraction).coerceIn(0.01f, 1.0f)
+                            val lp = window.attributes
+                            lp.screenBrightness = newBrightness
+                            window.attributes = lp
+                            showBrightnessIndicator(newBrightness)
+                        } else if (isAdjustingVolume) {
+                            val newVolumeFraction = (initialVolumeFraction + deltaFraction).coerceIn(0f, 1f)
+                            val targetVol = (newVolumeFraction * maxVolume).roundToInt()
+                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetVol, 0)
+                            showVolumeIndicator(newVolumeFraction, targetVol)
+                        }
+                        true
+                    } else {
+                        gestureDetector.onTouchEvent(event)
+                    }
+                }
+
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (hasScrolled) {
+                        scheduleHudFadeOut()
+                        hasScrolled = false
+                        isAdjustingBrightness = false
+                        isAdjustingVolume = false
+                        true
+                    } else {
+                        gestureDetector.onTouchEvent(event)
+                    }
+                }
+
+                else -> gestureDetector.onTouchEvent(event)
+            }
         }
+    }
+
+    private fun showBrightnessIndicator(brightness: Float) {
+        hudRunnable?.let { hudHandler.removeCallbacks(it) }
+        layoutVolumeIndicator.visibility = View.GONE
+
+        val percent = (brightness * 100).roundToInt()
+        pbBrightness.progress = percent
+        tvBrightnessPercent.text = "$percent%"
+
+        layoutBrightnessIndicator.alpha = 1.0f
+        layoutBrightnessIndicator.visibility = View.VISIBLE
+    }
+
+    private fun showVolumeIndicator(volumeFraction: Float, currentVolume: Int) {
+        hudRunnable?.let { hudHandler.removeCallbacks(it) }
+        layoutBrightnessIndicator.visibility = View.GONE
+
+        val percent = (volumeFraction * 100).roundToInt()
+        pbVolume.progress = percent
+        tvVolumePercent.text = "$percent%"
+        ivVolumeIcon.setImageResource(if (currentVolume == 0) R.drawable.ic_volume_mute else R.drawable.ic_volume_up)
+
+        layoutVolumeIndicator.alpha = 1.0f
+        layoutVolumeIndicator.visibility = View.VISIBLE
+    }
+
+    private fun scheduleHudFadeOut() {
+        hudRunnable?.let { hudHandler.removeCallbacks(it) }
+        val runnable = Runnable {
+            layoutBrightnessIndicator.animate().alpha(0f).setDuration(250).withEndAction {
+                layoutBrightnessIndicator.visibility = View.GONE
+            }.start()
+            layoutVolumeIndicator.animate().alpha(0f).setDuration(250).withEndAction {
+                layoutVolumeIndicator.visibility = View.GONE
+            }.start()
+        }
+        hudRunnable = runnable
+        hudHandler.postDelayed(runnable, 650L)
     }
 
     private fun rewind10s() {

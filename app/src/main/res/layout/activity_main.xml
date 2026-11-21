@@ -60,6 +60,26 @@
             app:strokeWidth="1dp" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMainBluetooth"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:backgroundTint="@color/card_bg"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:padding="0dp"
+            app:cornerRadius="8dp"
+            app:icon="@drawable/ic_bluetooth"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="18dp"
+            app:iconTint="@color/text_secondary"
+            app:strokeColor="@color/card_border"
+            app:strokeWidth="1dp" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRefresh"
             android:layout_width="wrap_content"
             android:layout_height="40dp"

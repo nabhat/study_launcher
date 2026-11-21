@@ -51,6 +51,13 @@ class FocusGuardianService : AccessibilityService() {
             ) ?: return false
             return enabledServices.contains(expectedServiceName)
         }
+
+        @Volatile
+        var bluetoothGraceUntilMs: Long = 0L
+
+        fun grantBluetoothGrace(durationMs: Long = 60_000L) {
+            bluetoothGraceUntilMs = System.currentTimeMillis() + durationMs
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -90,6 +97,10 @@ class FocusGuardianService : AccessibilityService() {
         // Strictly block Android Settings app, subpages, and device options during Focus Mode
         if (isSettingsPackage(foregroundPackage)) {
             val now = System.currentTimeMillis()
+            if (now < bluetoothGraceUntilMs) {
+                // User explicitly requested to connect Bluetooth headphones
+                return
+            }
             if (now - lastBlockTime > 800L || lastBlockedPkg != foregroundPackage) {
                 lastBlockTime = now
                 lastBlockedPkg = foregroundPackage

@@ -44,6 +44,17 @@
             android:text="1.0x"
             android:textColor="@color/accent"
             android:textSize="13sp" />
+
+        <!-- Bluetooth Headphones Button -->
+        <ImageButton
+            android:id="@+id/btnBluetooth"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_bluetooth"
+            app:tint="@color/white"
+            android:contentDescription="Connect Bluetooth Headphones" />
     </LinearLayout>
 
     <!-- Center Play/Pause & Rewind/Forward -->
