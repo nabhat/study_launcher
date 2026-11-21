@@ -199,8 +199,31 @@ class PdfViewerActivity : AppCompatActivity() {
         }
     }
 
+    private var sessionStartTimeMs = 0L
+
+    override fun onResume() {
+        super.onResume()
+        sessionStartTimeMs = System.currentTimeMillis()
+    }
+
+    private fun trackElapsedStudyTime() {
+        if (sessionStartTimeMs > 0) {
+            val elapsedSecs = (System.currentTimeMillis() - sessionStartTimeMs) / 1000L
+            if (elapsedSecs > 5) {
+                progressManager.addStudySeconds(elapsedSecs)
+            }
+            sessionStartTimeMs = System.currentTimeMillis()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        trackElapsedStudyTime()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        trackElapsedStudyTime()
         currentPage?.close()
         pdfRenderer?.close()
         fileDescriptor?.close()

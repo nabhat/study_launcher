@@ -213,6 +213,8 @@ class VideoPlayerActivity : AppCompatActivity() {
         })
     }
 
+    private var sessionStartTimeMs = 0L
+
     private fun saveCurrentProgress() {
         val exo = player ?: return
         val current = exo.currentPosition
@@ -220,6 +222,22 @@ class VideoPlayerActivity : AppCompatActivity() {
         if (duration > 0 && videoPath.isNotEmpty()) {
             progressManager.saveVideoProgress(videoPath, current, duration)
         }
+        trackElapsedStudyTime()
+    }
+
+    private fun trackElapsedStudyTime() {
+        if (sessionStartTimeMs > 0) {
+            val elapsedSecs = (System.currentTimeMillis() - sessionStartTimeMs) / 1000L
+            if (elapsedSecs > 5) {
+                progressManager.addStudySeconds(elapsedSecs)
+            }
+            sessionStartTimeMs = System.currentTimeMillis()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        sessionStartTimeMs = System.currentTimeMillis()
     }
 
     override fun onPause() {
