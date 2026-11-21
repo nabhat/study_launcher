@@ -17,6 +17,7 @@ import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -83,6 +84,12 @@ class MainActivity : AppCompatActivity() {
 
     private var selectedSubject: String = "All"
     private var searchQuery: String = ""
+
+    private val roleRequestLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        updateProtectionCardStatus()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -188,7 +195,7 @@ class MainActivity : AppCompatActivity() {
             if (KioskManager.isFocusLockActive(this)) {
                 Toast.makeText(this, "Home settings are locked while Focus Session is active.", Toast.LENGTH_SHORT).show()
             } else {
-                LauncherHelper.openHomeSettings(this)
+                showLauncherSelectionDialog()
             }
         }
 
@@ -479,19 +486,65 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun promptSetDefaultLauncher() {
+    private fun showLauncherSelectionDialog() {
+        val pm = packageManager
+        val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        val resolveInfos = pm.queryIntentActivities(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
+
+        val launchers = resolveInfos.map { info ->
+            val label = info.loadLabel(pm).toString()
+            val pkg = info.activityInfo.packageName
+            val isCurrent = (pkg == packageName)
+            Triple(label, pkg, isCurrent)
+        }
+
+        val items = launchers.map { (label, pkg, isCurrent) ->
+            if (isCurrent) "🎓 $label (Current Default)" else "🏠 $label"
+        }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Home Launcher Selection")
+            .setItems(items) { _, which ->
+                val selected = launchers[which]
+                if (selected.second == packageName) {
+                    requestSetDefaultLauncher()
+                } else {
+                    val launchIntent = pm.getLaunchIntentForPackage(selected.second)
+                        ?: Intent(Intent.ACTION_MAIN).apply {
+                            addCategory(Intent.CATEGORY_HOME)
+                            `package` = selected.second
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                    try {
+                        startActivity(launchIntent)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+            .setPositiveButton("Change System Default") { _, _ ->
+                requestSetDefaultLauncher()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun requestSetDefaultLauncher() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roleManager = getSystemService(android.app.role.RoleManager::class.java)
             if (roleManager != null && roleManager.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME)) {
                 if (!roleManager.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)) {
                     val intent = roleManager.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME)
-                    startActivity(intent)
-                    return
+                    try {
+                        roleRequestLauncher.launch(intent)
+                        return
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
             }
         }
-        val intent = Intent(Settings.ACTION_HOME_SETTINGS)
-        startActivity(intent)
+        LauncherHelper.openHomeSettings(this)
     }
 
     private fun showSetDefaultLauncherPrompt() {
@@ -499,7 +552,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle("Set Default Launcher")
             .setMessage("To ensure complete focus and prevent navigation glitching, set GateFocus as your default Home launcher.\n\nYou can easily switch back to Samsung Home whenever not in a focus session using the button in the top bar.")
             .setPositiveButton("Set Home") { _, _ ->
-                promptSetDefaultLauncher()
+                requestSetDefaultLauncher()
             }
             .setNegativeButton("Later", null)
             .show()
