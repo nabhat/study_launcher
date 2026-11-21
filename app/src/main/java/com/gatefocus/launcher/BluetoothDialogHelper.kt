@@ -7,6 +7,9 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -109,6 +112,62 @@ object BluetoothDialogHelper {
 
         var a2dpProxy: BluetoothProfile? = null
         var headsetProxy: BluetoothProfile? = null
+        val leScanner = try { adapter.bluetoothLeScanner } catch (e: Exception) { null }
+
+        fun isGenericName(name: String?): Boolean {
+            if (name.isNullOrBlank()) return true
+            val lower = name.lowercase().trim()
+            return lower == "bluetooth device" ||
+                   lower == "unknown device" ||
+                   lower == "null" ||
+                   lower.startsWith("bluetooth device (") ||
+                   lower.startsWith("audio device (") ||
+                   lower.startsWith("device (")
+        }
+
+        lateinit var pairedAdapter: BtDeviceAdapter
+        lateinit var nearbyAdapter: BtDeviceAdapter
+
+        fun addOrUpdateNearbyDevice(dev: BluetoothDevice, name: String) {
+            if (pairedList.any { it.address == dev.address }) return
+            if (isGenericName(name)) return
+
+            activity.runOnUiThread {
+                val existing = nearbyList.find { it.address == dev.address }
+                if (existing != null) {
+                    if (existing.name != name && !isGenericName(name)) {
+                        existing.name = name
+                        nearbyAdapter.notifyDataSetChanged()
+                    }
+                } else {
+                    nearbyList.add(BtItem(dev, name, dev.address, isConnected = false, isConnecting = false, isBonded = false))
+                    nearbyAdapter.notifyDataSetChanged()
+                    tvNoNearby.visibility = View.GONE
+                }
+            }
+        }
+
+        val leCallback = object : ScanCallback() {
+            override fun onScanResult(callbackType: Int, result: ScanResult?) {
+                val dev = result?.device ?: return
+                val name = result.scanRecord?.deviceName
+                    ?: (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) dev.alias ?: dev.name else dev.name)
+                if (!name.isNullOrBlank() && !isGenericName(name)) {
+                    addOrUpdateNearbyDevice(dev, name)
+                }
+            }
+
+            override fun onBatchScanResults(results: MutableList<ScanResult>?) {
+                results?.forEach { result ->
+                    val dev = result.device ?: return@forEach
+                    val name = result.scanRecord?.deviceName
+                        ?: (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) dev.alias ?: dev.name else dev.name)
+                    if (!name.isNullOrBlank() && !isGenericName(name)) {
+                        addOrUpdateNearbyDevice(dev, name)
+                    }
+                }
+            }
+        }
 
         fun isConnectedAudio(device: BluetoothDevice): Boolean {
             val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -127,9 +186,6 @@ object BluetoothDialogHelper {
             val headsetConnected = headsetProxy?.getConnectedDevices()?.contains(device) == true
             return a2dpConnected || headsetConnected
         }
-
-        lateinit var pairedAdapter: BtDeviceAdapter
-        lateinit var nearbyAdapter: BtDeviceAdapter
 
         fun refreshPairedList() {
             pairedList.clear()
@@ -276,21 +332,55 @@ object BluetoothDialogHelper {
             activity.startActivity(enableIntent)
         }
 
-        btnScan.setOnClickListener {
+        fun startFullScan() {
             if (!adapter.isEnabled) {
                 Toast.makeText(activity, "Please turn on Bluetooth first", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+                return
             }
             if (adapter.isDiscovering) {
                 adapter.cancelDiscovery()
             }
+            try {
+                leScanner?.stopScan(leCallback)
+            } catch (e: Exception) {}
+
             nearbyList.clear()
             nearbyAdapter.notifyDataSetChanged()
-            tvNoNearby.text = "Scanning for nearby headphones..."
+            tvNoNearby.text = "Searching for headphones...\n\nMake sure your headphones are in PAIRING MODE\n(press & hold the power/case button until light blinks)"
             tvNoNearby.visibility = View.VISIBLE
             pbScanning.visibility = View.VISIBLE
+            btnScan.isEnabled = false
 
+            // Start classic BR/EDR discovery
             adapter.startDiscovery()
+
+            // Start BLE scanning for TWS earbuds
+            try {
+                val settings = ScanSettings.Builder()
+                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                    .build()
+                leScanner?.startScan(null, settings, leCallback)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            // Auto-stop scanning after 15 seconds to conserve battery
+            view.postDelayed({
+                try {
+                    if (adapter.isDiscovering) adapter.cancelDiscovery()
+                    leScanner?.stopScan(leCallback)
+                } catch (e: Exception) {}
+                pbScanning.visibility = View.GONE
+                btnScan.isEnabled = true
+                if (nearbyList.isEmpty()) {
+                    tvNoNearby.text = "No headphones found.\nEnsure headphones are in PAIRING MODE and tap Scan again."
+                    tvNoNearby.visibility = View.VISIBLE
+                }
+            }, 15000L)
+        }
+
+        btnScan.setOnClickListener {
+            startFullScan()
         }
 
         btnClose.setOnClickListener {
@@ -314,18 +404,8 @@ object BluetoothDialogHelper {
                         val extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME)
                         if (dev != null) {
                             val name = getDeviceName(dev, extraName)
-                            if (!pairedList.any { it.address == dev.address }) {
-                                val existing = nearbyList.find { it.address == dev.address }
-                                if (existing != null) {
-                                    if (!extraName.isNullOrBlank() && (existing.name.startsWith("Bluetooth") || existing.name.startsWith("Audio"))) {
-                                        existing.name = extraName
-                                        nearbyAdapter.notifyDataSetChanged()
-                                    }
-                                } else {
-                                    nearbyList.add(BtItem(dev, name, dev.address, isConnected = false, isConnecting = false, isBonded = false))
-                                    nearbyAdapter.notifyDataSetChanged()
-                                    tvNoNearby.visibility = View.GONE
-                                }
+                            if (!isGenericName(name)) {
+                                addOrUpdateNearbyDevice(dev, name)
                             }
                         }
                     }
@@ -337,12 +417,8 @@ object BluetoothDialogHelper {
                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                         }
                         val newName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME) ?: dev?.name
-                        if (dev != null && !newName.isNullOrBlank()) {
-                            val nearbyItem = nearbyList.find { it.address == dev.address }
-                            if (nearbyItem != null) {
-                                nearbyItem.name = newName
-                                nearbyAdapter.notifyDataSetChanged()
-                            }
+                        if (dev != null && !newName.isNullOrBlank() && !isGenericName(newName)) {
+                            addOrUpdateNearbyDevice(dev, newName)
                             val pairedItem = pairedList.find { it.address == dev.address }
                             if (pairedItem != null) {
                                 pairedItem.name = newName
@@ -355,10 +431,9 @@ object BluetoothDialogHelper {
                         btnScan.isEnabled = false
                     }
                     BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                        pbScanning.visibility = View.GONE
-                        btnScan.isEnabled = true
+                        // Handled by timer or discovery end
                         if (nearbyList.isEmpty()) {
-                            tvNoNearby.text = "No nearby devices found. Make sure headphones are in pairing mode."
+                            tvNoNearby.text = "No headphones found.\nEnsure headphones are in PAIRING MODE and tap Scan."
                             tvNoNearby.visibility = View.VISIBLE
                         }
                     }
@@ -408,6 +483,7 @@ object BluetoothDialogHelper {
                 if (adapter.isDiscovering) {
                     adapter.cancelDiscovery()
                 }
+                leScanner?.stopScan(leCallback)
                 activity.unregisterReceiver(receiver)
             } catch (e: Exception) {}
 
@@ -417,6 +493,10 @@ object BluetoothDialogHelper {
 
         refreshPairedList()
         dialog.show()
+
+        if (adapter.isEnabled) {
+            startFullScan()
+        }
     }
 
     private fun getDeviceName(device: BluetoothDevice, extraName: String? = null): String {
