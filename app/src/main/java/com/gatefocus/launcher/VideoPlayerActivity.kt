@@ -129,16 +129,7 @@ class VideoPlayerActivity : AppCompatActivity() {
         }
 
         btnBluetooth?.setOnClickListener {
-            FocusGuardianService.grantBluetoothGrace(60_000L)
-            try {
-                val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                startActivity(intent)
-                Toast.makeText(this, "Connect your Bluetooth headphones", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(this, "Cannot open Bluetooth settings: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+            BluetoothDialogHelper.show(this)
         }
 
         setupGestures()
