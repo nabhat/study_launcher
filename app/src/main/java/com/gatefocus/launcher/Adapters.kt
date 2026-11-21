@@ -83,7 +83,7 @@ class PdfAdapter(
     override fun onBindViewHolder(holder: PdfViewHolder, position: Int) {
         val pdf = pdfs[position]
         holder.tvPdfTitle.text = pdf.title
-        val folderPrefix = if (pdf.folderName.isNotBlank() && pdf.folderName != "Workbooks") "${pdf.folderName} • " else ""
+        val folderPrefix = if (pdf.folderName.isNotBlank() && pdf.folderName != "Workbooks" && pdf.folderName != "General") "${pdf.folderName} • " else ""
         holder.tvPdfInfo.text = if (pdf.lastPage > 0) "${folderPrefix}Last solved: Page ${pdf.lastPage + 1}" else "${folderPrefix}Workbook • Tap to solve"
 
         val openAction = { onPdfClick(pdf) }

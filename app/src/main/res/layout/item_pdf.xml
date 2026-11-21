@@ -22,7 +22,7 @@
             android:layout_height="48dp"
             android:background="#33EF4444"
             android:padding="10dp"
-            android:src="@android:drawable/ic_menu_edit"
+            android:src="@drawable/ic_pdf"
             app:tint="@color/red" />
 
         <LinearLayout

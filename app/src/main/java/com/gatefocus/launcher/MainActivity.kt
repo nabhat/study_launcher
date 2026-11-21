@@ -683,15 +683,37 @@ class MainActivity : AppCompatActivity() {
         tvStatsStreak.text = "$streak ${if (streak == 1) "Day" else "Days"}"
     }
 
+    private val GENERIC_SUBFOLDERS = setOf(
+        "workbooks", "workbook", "books", "book", "notes", "material", "materials",
+        "pdf", "pdfs", "lectures", "lecture", "videos", "video", "classes"
+    )
+
+    private fun resolveSubjectName(file: File, rootDir: File): String {
+        val parent = file.parentFile ?: return "General"
+        if (parent.absolutePath.equals(rootDir.absolutePath, ignoreCase = true)) {
+            return "General"
+        }
+
+        val parentName = parent.name
+        if (parentName.lowercase() in GENERIC_SUBFOLDERS) {
+            val grandParent = parent.parentFile
+            if (grandParent != null && !grandParent.absolutePath.equals(rootDir.absolutePath, ignoreCase = true) && grandParent.name.isNotBlank()) {
+                return grandParent.name
+            }
+        }
+
+        return parentName
+    }
+
     private fun setupSubjectChips() {
         val subjects = linkedSetOf("All")
         for (v in allVideos) {
-            if (v.playlistName.isNotBlank() && v.playlistName != "Lectures") {
+            if (v.playlistName.isNotBlank() && v.playlistName != "Lectures" && v.playlistName != "General") {
                 subjects.add(v.playlistName)
             }
         }
         for (p in allPdfs) {
-            if (p.folderName.isNotBlank() && p.folderName != "Workbooks") {
+            if (p.folderName.isNotBlank() && p.folderName != "Workbooks" && p.folderName != "General") {
                 subjects.add(p.folderName)
             }
         }
@@ -745,6 +767,11 @@ class MainActivity : AppCompatActivity() {
         pdfList.addAll(filteredPdfs)
         rvPdfs.adapter?.notifyDataSetChanged()
 
+        val videoTab = tabLayout.getTabAt(0)
+        val pdfTab = tabLayout.getTabAt(1)
+        videoTab?.text = "Video Lectures (${filteredVideos.size})"
+        pdfTab?.text = "PDF Workbooks (${filteredPdfs.size})"
+
         if (tabLayout.selectedTabPosition == 0) {
             checkEmptyState(videoList.isEmpty())
         } else {
@@ -767,7 +794,7 @@ class MainActivity : AppCompatActivity() {
             ).filterNotNull().filter { it.exists() }.distinctBy { it.absolutePath }
 
             for (dir in searchDirs) {
-                scanDirectory(dir, videos, pdfs)
+                scanDirectory(dir, dir, videos, pdfs)
             }
 
             // Natural alphanumeric sort (e.g. 01, 02, 10...)
@@ -797,11 +824,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun scanDirectory(dir: File, videos: MutableList<VideoItem>, pdfs: MutableList<PdfItem>) {
-        val files = dir.listFiles() ?: return
+    private fun scanDirectory(rootDir: File, currentDir: File, videos: MutableList<VideoItem>, pdfs: MutableList<PdfItem>) {
+        val files = currentDir.listFiles() ?: return
         for (file in files) {
             if (file.isDirectory) {
-                scanDirectory(file, videos, pdfs)
+                scanDirectory(rootDir, file, videos, pdfs)
             } else {
                 val ext = file.extension.lowercase()
                 if (ext in listOf("mp4", "mkv", "webm")) {
@@ -814,7 +841,7 @@ class MainActivity : AppCompatActivity() {
                         else -> null
                     }
 
-                    val playlistName = file.parentFile?.name ?: "Lectures"
+                    val playlistName = resolveSubjectName(file, rootDir)
                     val item = VideoItem(
                         file = file,
                         title = file.nameWithoutExtension,
@@ -826,7 +853,7 @@ class MainActivity : AppCompatActivity() {
                     )
                     videos.add(item)
                 } else if (ext == "pdf") {
-                    val folderName = file.parentFile?.name ?: "Workbooks"
+                    val folderName = resolveSubjectName(file, rootDir)
                     val item = PdfItem(
                         file = file,
                         title = file.nameWithoutExtension,
