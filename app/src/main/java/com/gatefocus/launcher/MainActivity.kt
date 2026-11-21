@@ -121,13 +121,24 @@ class MainActivity : AppCompatActivity() {
         }
 
         checkAndRequestPermissions()
+
+        if (intent?.getBooleanExtra("clear_owner", false) == true) {
+            KioskManager.removeAllRestrictionsAndDeviceOwner(this)
+            Toast.makeText(this, "Device Owner & restrictions removed.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra("clear_owner", false)) {
+            KioskManager.removeAllRestrictionsAndDeviceOwner(this)
+            Toast.makeText(this, "Device Owner & restrictions removed.", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        if (KioskManager.isDeviceOwner(this)) {
-            KioskManager.applyDeviceOwnerPolicies(this)
-        }
         updateProtectionCardStatus()
         if (hasStoragePermission()) {
             loadStudyFiles()

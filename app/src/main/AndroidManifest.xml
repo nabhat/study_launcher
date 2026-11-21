@@ -67,6 +67,15 @@
             </intent-filter>
         </receiver>
 
+        <!-- Receiver to clear Device Owner and remove all restrictions -->
+        <receiver
+            android:name=".AdminRemovalReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.gatefocus.launcher.CLEAR_DEVICE_OWNER" />
+            </intent-filter>
+        </receiver>
+
         <!-- 2nd Line of Defence: Accessibility Blocker Service -->
         <service
             android:name=".FocusGuardianService"

@@ -112,6 +112,8 @@ object KioskManager {
                     dpm.clearUserRestriction(admin, UserManager.DISALLOW_UNINSTALL_APPS)
                     dpm.clearUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
                     dpm.clearUserRestriction(admin, UserManager.DISALLOW_APPS_CONTROL)
+                    dpm.clearUserRestriction(admin, UserManager.DISALLOW_FACTORY_RESET)
+                    dpm.setUninstallBlocked(admin, activity.packageName, false)
                     dpm.setStatusBarDisabled(admin, false)
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -193,14 +195,11 @@ object KioskManager {
             dpm.setUninstallBlocked(admin, context.packageName, true)
             dpm.addUserRestriction(admin, UserManager.DISALLOW_UNINSTALL_APPS)
 
-            // Block Safe Mode reboot (OS kernel level - prevents entering Safe Mode via hardware keys or menu)
+            // Block Safe Mode reboot
             dpm.addUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
 
             // Block app management / force-stop in settings
             dpm.addUserRestriction(admin, UserManager.DISALLOW_APPS_CONTROL)
-
-            // Block factory reset
-            dpm.addUserRestriction(admin, UserManager.DISALLOW_FACTORY_RESET)
 
             // Block status bar expansion during active focus lock
             if (isFocusLockActive(context)) {
@@ -208,6 +207,33 @@ object KioskManager {
             }
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    fun removeAllRestrictionsAndDeviceOwner(context: Context) {
+        val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val admin = ComponentName(context, DeviceAdmin::class.java)
+
+        try {
+            dpm.clearUserRestriction(admin, UserManager.DISALLOW_FACTORY_RESET)
+            dpm.clearUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
+            dpm.clearUserRestriction(admin, UserManager.DISALLOW_UNINSTALL_APPS)
+            dpm.clearUserRestriction(admin, UserManager.DISALLOW_APPS_CONTROL)
+            dpm.setUninstallBlocked(admin, context.packageName, false)
+            dpm.setLockTaskPackages(admin, arrayOf())
+            dpm.setStatusBarDisabled(admin, false)
+            android.util.Log.i("DeviceAdmin", "Successfully cleared all device restrictions")
+        } catch (e: Exception) {
+            android.util.Log.e("DeviceAdmin", "Failed to clear user restrictions", e)
+        }
+
+        try {
+            if (dpm.isDeviceOwnerApp(context.packageName)) {
+                dpm.clearDeviceOwnerApp(context.packageName)
+                android.util.Log.i("DeviceAdmin", "Successfully cleared Device Owner app")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("DeviceAdmin", "Failed to clear device owner app", e)
         }
     }
 }
