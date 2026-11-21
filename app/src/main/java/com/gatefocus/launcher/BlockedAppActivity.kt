@@ -91,7 +91,7 @@ class BlockedAppActivity : AppCompatActivity() {
                 } else {
                     String.format("%02d:%02d", mins, secs)
                 }
-                tvBlockedTimer.text = "⏳ Focus Session Active: $formatted remaining"
+                tvBlockedTimer.text = "Focus Session Active: $formatted remaining"
             }
 
             override fun onFinish() {

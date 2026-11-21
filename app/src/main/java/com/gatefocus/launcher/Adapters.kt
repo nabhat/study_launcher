@@ -45,7 +45,7 @@ class VideoAdapter(
         if (video.isCompleted) {
             holder.tvCompletedBadge.visibility = View.VISIBLE
             holder.pbVideoProgress.progress = 100
-            holder.tvProgressText.text = "Completed ✓"
+            holder.tvProgressText.text = "Completed"
         } else if (video.progressMs > 0) {
             holder.tvCompletedBadge.visibility = View.GONE
             holder.pbVideoProgress.progress = video.progressPercent

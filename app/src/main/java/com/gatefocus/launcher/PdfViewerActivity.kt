@@ -98,13 +98,13 @@ class PdfViewerActivity : AppCompatActivity() {
                 // Toggle off to Pan & Zoom mode
                 zoomContainer.isPenActive = false
                 btnPen.setBackgroundColor(Color.parseColor("#1E293B"))
-                Toast.makeText(this, "✋ Pan & Zoom mode active", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Pan & Zoom mode active", Toast.LENGTH_SHORT).show()
             } else {
                 zoomContainer.isPenActive = true
                 drawingView.setPenColor(Color.parseColor("#2563EB"))
                 btnPen.setBackgroundColor(Color.parseColor("#2563EB"))
                 btnEraser.setBackgroundColor(Color.parseColor("#1E293B"))
-                Toast.makeText(this, "✏️ Pen active (pinch with 2 fingers to zoom)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Pen active (pinch with 2 fingers to zoom)", Toast.LENGTH_SHORT).show()
             }
         }
 

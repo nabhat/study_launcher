@@ -131,7 +131,7 @@ class VideoPlayerActivity : AppCompatActivity() {
         val current = exo.currentPosition
         val newPos = (current - 10000L).coerceAtLeast(0L)
         exo.seekTo(newPos)
-        showSeekFeedback(tvSeekLeft, "⏪ 10s")
+        showSeekFeedback(tvSeekLeft, "-10s")
     }
 
     private fun forward10s() {
@@ -141,7 +141,7 @@ class VideoPlayerActivity : AppCompatActivity() {
         val target = current + 10000L
         val newPos = if (duration > 0) target.coerceAtMost(duration) else target
         exo.seekTo(newPos)
-        showSeekFeedback(tvSeekRight, "⏩ 10s")
+        showSeekFeedback(tvSeekRight, "+10s")
     }
 
     private fun showSeekFeedback(view: TextView, text: String) {

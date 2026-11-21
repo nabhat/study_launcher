@@ -20,7 +20,7 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_revert"
+            android:src="@drawable/ic_arrow_back"
             app:tint="@color/white" />
 
         <TextView
@@ -88,21 +88,31 @@
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnPrevPage"
+            style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:backgroundTint="@color/card_bg"
-            android:text="◀ Prev"
+            app:icon="@drawable/ic_arrow_back"
+            app:iconTint="@color/text_primary"
+            app:iconSize="18dp"
+            app:iconGravity="textStart"
+            android:text="Prev"
             android:textColor="@color/text_primary" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnNextPage"
+            style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:layout_marginStart="8dp"
             android:backgroundTint="@color/card_bg"
-            android:text="Next ▶"
+            app:icon="@drawable/ic_arrow_forward"
+            app:iconTint="@color/text_primary"
+            app:iconSize="18dp"
+            app:iconGravity="textEnd"
+            android:text="Next"
             android:textColor="@color/text_primary" />
 
         <View
@@ -111,16 +121,26 @@
             android:layout_weight="1" />
 
         <!-- Zoom Controls -->
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnZoomOut"
-            android:layout_width="44dp"
+            android:layout_width="40dp"
             android:layout_height="40dp"
             android:backgroundTint="@color/card_bg"
-            android:text="➖"
-            android:textColor="@color/text_primary"
-            android:textSize="12sp" />
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:padding="0dp"
+            app:cornerRadius="8dp"
+            app:icon="@drawable/ic_zoom_out"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="20dp"
+            app:iconTint="@color/text_primary"
+            app:strokeColor="@color/card_border"
+            app:strokeWidth="1dp" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnZoomReset"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
@@ -128,40 +148,65 @@
             android:backgroundTint="@color/card_bg"
             android:text="100%"
             android:textColor="@color/accent"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            app:cornerRadius="8dp"
+            app:strokeColor="@color/card_border"
+            app:strokeWidth="1dp" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnZoomIn"
-            android:layout_width="44dp"
+            android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_marginStart="4dp"
             android:backgroundTint="@color/card_bg"
-            android:text="➕"
-            android:textColor="@color/text_primary"
-            android:textSize="12sp" />
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:padding="0dp"
+            app:cornerRadius="8dp"
+            app:icon="@drawable/ic_zoom_in"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="20dp"
+            app:iconTint="@color/text_primary"
+            app:strokeColor="@color/card_border"
+            app:strokeWidth="1dp" />
 
         <View
-            android:layout_width="16dp"
+            android:layout_width="12dp"
             android:layout_height="1dp" />
 
         <!-- Pen Mode Toggle -->
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnPen"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:backgroundTint="@color/card_bg"
-            android:text="✏️ Pen"
-            android:textColor="@color/text_primary" />
+            android:text="Pen"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp"
+            app:cornerRadius="8dp"
+            app:icon="@drawable/ic_edit"
+            app:iconPadding="6dp"
+            app:iconSize="16dp"
+            app:iconTint="@color/text_primary"
+            app:strokeColor="@color/card_border"
+            app:strokeWidth="1dp" />
 
         <!-- Eraser Toggle -->
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnEraser"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:layout_marginStart="6dp"
             android:backgroundTint="@color/card_bg"
             android:text="Eraser"
-            android:textColor="@color/text_primary" />
+            android:textColor="@color/text_primary"
+            android:textSize="13sp"
+            app:cornerRadius="8dp"
+            app:strokeColor="@color/card_border"
+            app:strokeWidth="1dp" />
 
         <!-- Clear Page Drawing -->
         <Button

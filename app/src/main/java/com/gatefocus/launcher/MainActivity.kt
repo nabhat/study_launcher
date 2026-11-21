@@ -14,6 +14,7 @@ import android.text.TextWatcher
 import android.view.View
 import android.widget.EditText
 import android.widget.HorizontalScrollView
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -47,6 +48,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tabLayout: TabLayout
     private lateinit var btnKioskToggle: MaterialButton
     private lateinit var btnAllowedApps: MaterialButton
+    private lateinit var ivShieldIcon: ImageView
     private lateinit var tvProtectionStatus: TextView
     private lateinit var tvAdminBadge: TextView
     private lateinit var tvTimerDisplay: TextView
@@ -105,6 +107,7 @@ class MainActivity : AppCompatActivity() {
         tabLayout = findViewById(R.id.tabLayout)
         btnKioskToggle = findViewById(R.id.btnKioskToggle)
         btnAllowedApps = findViewById(R.id.btnAllowedApps)
+        ivShieldIcon = findViewById(R.id.ivShieldIcon)
         tvProtectionStatus = findViewById(R.id.tvProtectionStatus)
         tvAdminBadge = findViewById(R.id.tvAdminBadge)
         tvTimerDisplay = findViewById(R.id.tvTimerDisplay)
@@ -143,8 +146,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (tabLayout.tabCount == 0) {
-            tabLayout.addTab(tabLayout.newTab().setText("📹 Video Lectures"))
-            tabLayout.addTab(tabLayout.newTab().setText("📄 PDF Workbooks"))
+            tabLayout.addTab(tabLayout.newTab().setIcon(R.drawable.ic_video).setText("Video Lectures"))
+            tabLayout.addTab(tabLayout.newTab().setIcon(R.drawable.ic_pdf).setText("PDF Workbooks"))
         }
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -301,7 +304,9 @@ class MainActivity : AppCompatActivity() {
         val isLockActive = KioskManager.isFocusLockActive(this)
 
         if (isAdmin && isAccessibility && isLockActive) {
-            tvProtectionStatus.text = "🛡️ Focus Shield: Active"
+            ivShieldIcon.setImageResource(R.drawable.ic_shield)
+            ivShieldIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.accent_green)
+            tvProtectionStatus.text = "Focus Shield: Active"
             tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             tvAdminBadge.text = if (KioskManager.isDeviceOwner(this)) "DEVICE OWNER" else "LOCKED"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
@@ -309,13 +314,15 @@ class MainActivity : AppCompatActivity() {
             tvTimerSubtext.text = "Focus session active. Distractions & launcher switching are locked."
             btnKioskToggle.isEnabled = false
             btnKioskToggle.alpha = 0.5f
-            btnKioskToggle.text = "Focus Locked 🔒"
+            btnKioskToggle.text = "Focus Locked"
+            btnKioskToggle.setIconResource(R.drawable.ic_lock)
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
 
             btnAllowedApps.isEnabled = false
             btnAllowedApps.alpha = 0.4f
-            btnAllowedApps.text = "Apps Locked 🔒"
+            btnAllowedApps.text = "Apps Locked"
+            btnAllowedApps.setIconResource(R.drawable.ic_lock)
 
             // Lock launcher switching buttons during focus session
             btnSwitchHome.isEnabled = false
@@ -326,22 +333,26 @@ class MainActivity : AppCompatActivity() {
             startLiveSessionTimer()
         } else if (!isAdmin) {
             sessionTimer?.cancel()
-            tvProtectionStatus.text = "⚠️ Device Admin: Not Activated"
+            ivShieldIcon.setImageResource(R.drawable.ic_shield_alert)
+            ivShieldIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.red)
+            tvProtectionStatus.text = "Device Admin: Not Activated"
             tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.red))
             tvAdminBadge.text = "UNPROTECTED"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.red))
             scrollDurationPresets.visibility = View.VISIBLE
-            tvTimerDisplay.text = "⏱️ Focus Duration: $selectedDurationMinutes min"
+            tvTimerDisplay.text = "Focus Duration: $selectedDurationMinutes min"
             tvTimerSubtext.text = "Activate Device Admin to enable tamper protection"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
             btnKioskToggle.text = "Activate Admin"
+            btnKioskToggle.setIconResource(R.drawable.ic_lock)
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
 
             btnAllowedApps.isEnabled = true
             btnAllowedApps.alpha = 1.0f
-            btnAllowedApps.text = "Allowed Apps ⚙"
+            btnAllowedApps.text = "Allowed Apps"
+            btnAllowedApps.setIconResource(R.drawable.ic_apps)
 
             btnSwitchHome.isEnabled = true
             btnSwitchHome.alpha = 1.0f
@@ -349,22 +360,26 @@ class MainActivity : AppCompatActivity() {
             btnHomeSettings.alpha = 1.0f
         } else if (!isAccessibility) {
             sessionTimer?.cancel()
-            tvProtectionStatus.text = "⚠️ App Blocker: Accessibility Required"
+            ivShieldIcon.setImageResource(R.drawable.ic_shield_alert)
+            ivShieldIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.accent_yellow)
+            tvProtectionStatus.text = "App Blocker: Accessibility Required"
             tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
             tvAdminBadge.text = "SETUP REQUIRED"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
             scrollDurationPresets.visibility = View.VISIBLE
-            tvTimerDisplay.text = "⏱️ Focus Duration: $selectedDurationMinutes min"
+            tvTimerDisplay.text = "Focus Duration: $selectedDurationMinutes min"
             tvTimerSubtext.text = "Enable GateFocus in Accessibility Settings to block Settings & apps"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
             btnKioskToggle.text = "Enable App Blocker"
+            btnKioskToggle.setIconResource(R.drawable.ic_lock)
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
 
             btnAllowedApps.isEnabled = true
             btnAllowedApps.alpha = 1.0f
-            btnAllowedApps.text = "Allowed Apps ⚙"
+            btnAllowedApps.text = "Allowed Apps"
+            btnAllowedApps.setIconResource(R.drawable.ic_apps)
 
             btnSwitchHome.isEnabled = true
             btnSwitchHome.alpha = 1.0f
@@ -372,22 +387,26 @@ class MainActivity : AppCompatActivity() {
             btnHomeSettings.alpha = 1.0f
         } else if (!isDefaultLauncher()) {
             sessionTimer?.cancel()
-            tvProtectionStatus.text = "⚠️ Home Launcher: Not Set"
+            ivShieldIcon.setImageResource(R.drawable.ic_shield_alert)
+            ivShieldIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.accent_yellow)
+            tvProtectionStatus.text = "Home Launcher: Not Set"
             tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
             tvAdminBadge.text = "SET AS HOME"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
             scrollDurationPresets.visibility = View.VISIBLE
-            tvTimerDisplay.text = "⏱️ Focus Duration: $selectedDurationMinutes min"
+            tvTimerDisplay.text = "Focus Duration: $selectedDurationMinutes min"
             tvTimerSubtext.text = "Set GateFocus as default Home launcher to prevent navigation glitching"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
-            btnKioskToggle.text = "Set Default Launcher 🏠"
+            btnKioskToggle.text = "Set Default Launcher"
+            btnKioskToggle.setIconResource(R.drawable.ic_home)
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
 
             btnAllowedApps.isEnabled = true
             btnAllowedApps.alpha = 1.0f
-            btnAllowedApps.text = "Allowed Apps ⚙"
+            btnAllowedApps.text = "Allowed Apps"
+            btnAllowedApps.setIconResource(R.drawable.ic_apps)
 
             btnSwitchHome.isEnabled = true
             btnSwitchHome.alpha = 1.0f
@@ -395,22 +414,26 @@ class MainActivity : AppCompatActivity() {
             btnHomeSettings.alpha = 1.0f
         } else {
             sessionTimer?.cancel()
-            tvProtectionStatus.text = "🛡️ Focus Shield: Standby"
+            ivShieldIcon.setImageResource(R.drawable.ic_shield)
+            ivShieldIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.accent)
+            tvProtectionStatus.text = "Focus Shield: Standby"
             tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent))
             tvAdminBadge.text = "READY"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent))
             scrollDurationPresets.visibility = View.VISIBLE
-            tvTimerDisplay.text = "⏱️ Focus Duration: $selectedDurationMinutes min"
+            tvTimerDisplay.text = "Focus Duration: $selectedDurationMinutes min"
             tvTimerSubtext.text = "Select study duration and lock distractions"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
-            btnKioskToggle.text = "Start Focus (${selectedDurationMinutes}m) 🔒"
+            btnKioskToggle.text = "Start Focus (${selectedDurationMinutes}m)"
+            btnKioskToggle.setIconResource(R.drawable.ic_lock)
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
 
             btnAllowedApps.isEnabled = true
             btnAllowedApps.alpha = 1.0f
-            btnAllowedApps.text = "Allowed Apps ⚙"
+            btnAllowedApps.text = "Allowed Apps"
+            btnAllowedApps.setIconResource(R.drawable.ic_apps)
 
             btnSwitchHome.isEnabled = true
             btnSwitchHome.alpha = 1.0f
@@ -438,14 +461,14 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     String.format("%02d:%02d", mins, secs)
                 }
-                tvTimerDisplay.text = "⏳ $formatted remaining"
+                tvTimerDisplay.text = "$formatted remaining"
             }
 
             override fun onFinish() {
                 KioskManager.stopKioskMode(this@MainActivity)
                 updateProtectionCardStatus()
                 layoutSessionComplete.visibility = View.VISIBLE
-                Toast.makeText(this@MainActivity, "🎉 Focus session completed! Great study session.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, "Focus session completed! Great study session.", Toast.LENGTH_LONG).show()
             }
         }.start()
     }
@@ -499,7 +522,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val items = launchers.map { (label, pkg, isCurrent) ->
-            if (isCurrent) "🎓 $label (Current Default)" else "🏠 $label"
+            if (isCurrent) "$label (Current Default)" else label
         }.toTypedArray()
 
         AlertDialog.Builder(this)
@@ -643,13 +666,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateStudyStats() {
-        tvStatsTimeToday.text = "⏱️ ${progressManager.getTodayStudyFormatted()}"
+        tvStatsTimeToday.text = progressManager.getTodayStudyFormatted()
         val completedCount = allVideos.count { it.isCompleted }
         val totalCount = allVideos.size
         val percent = if (totalCount > 0) ((completedCount * 100) / totalCount) else 0
-        tvStatsCompleted.text = "📚 $completedCount / $totalCount ($percent%)"
+        tvStatsCompleted.text = "$completedCount / $totalCount ($percent%)"
         val streak = progressManager.getStudyStreak()
-        tvStatsStreak.text = "🔥 $streak ${if (streak == 1) "Day" else "Days"}"
+        tvStatsStreak.text = "$streak ${if (streak == 1) "Day" else "Days"}"
     }
 
     private fun setupSubjectChips() {
