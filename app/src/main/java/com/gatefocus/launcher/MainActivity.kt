@@ -17,6 +17,7 @@ import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.content.res.Configuration
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -24,6 +25,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gatefocus.launcher.data.PdfItem
@@ -135,8 +137,9 @@ class MainActivity : AppCompatActivity() {
 
         setupDurationPresets()
 
-        rvVideos.layoutManager = LinearLayoutManager(this)
-        rvPdfs.layoutManager = LinearLayoutManager(this)
+        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        rvVideos.layoutManager = if (isLandscape) GridLayoutManager(this, 2) else LinearLayoutManager(this)
+        rvPdfs.layoutManager = if (isLandscape) GridLayoutManager(this, 2) else LinearLayoutManager(this)
 
         rvVideos.adapter = VideoAdapter(videoList) { selectedVideo ->
             VideoPlayerActivity.start(this, selectedVideo.file.absolutePath, selectedVideo.title)

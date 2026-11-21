@@ -35,7 +35,7 @@ object BluetoothDialogHelper {
 
     data class BtItem(
         val device: BluetoothDevice,
-        val name: String,
+        var name: String,
         val address: String,
         var isConnected: Boolean,
         var isConnecting: Boolean,
@@ -79,6 +79,15 @@ object BluetoothDialogHelper {
         val dialog = BottomSheetDialog(activity)
         val view = LayoutInflater.from(activity).inflate(R.layout.dialog_bluetooth, null)
         dialog.setContentView(view)
+
+        dialog.setOnShowListener {
+            val bottomSheet = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+            if (bottomSheet != null) {
+                val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(bottomSheet)
+                behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+                behavior.skipCollapsed = true
+            }
+        }
 
         val btnClose = view.findViewById<MaterialButton>(R.id.btnBtClose)
         val layoutBtOff = view.findViewById<LinearLayout>(R.id.layoutBtOff)
@@ -302,15 +311,42 @@ object BluetoothDialogHelper {
                             @Suppress("DEPRECATION")
                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                         }
+                        val extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME)
                         if (dev != null) {
-                            val name = getDeviceName(dev)
-                            // Filter out unnamed or already paired
-                            if (name.isNotBlank() && name != "Unknown Device" && !pairedList.any { it.address == dev.address }) {
-                                if (!nearbyList.any { it.address == dev.address }) {
+                            val name = getDeviceName(dev, extraName)
+                            if (!pairedList.any { it.address == dev.address }) {
+                                val existing = nearbyList.find { it.address == dev.address }
+                                if (existing != null) {
+                                    if (!extraName.isNullOrBlank() && (existing.name.startsWith("Bluetooth") || existing.name.startsWith("Audio"))) {
+                                        existing.name = extraName
+                                        nearbyAdapter.notifyDataSetChanged()
+                                    }
+                                } else {
                                     nearbyList.add(BtItem(dev, name, dev.address, isConnected = false, isConnecting = false, isBonded = false))
                                     nearbyAdapter.notifyDataSetChanged()
                                     tvNoNearby.visibility = View.GONE
                                 }
+                            }
+                        }
+                    }
+                    BluetoothDevice.ACTION_NAME_CHANGED -> {
+                        val dev: BluetoothDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                        }
+                        val newName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME) ?: dev?.name
+                        if (dev != null && !newName.isNullOrBlank()) {
+                            val nearbyItem = nearbyList.find { it.address == dev.address }
+                            if (nearbyItem != null) {
+                                nearbyItem.name = newName
+                                nearbyAdapter.notifyDataSetChanged()
+                            }
+                            val pairedItem = pairedList.find { it.address == dev.address }
+                            if (pairedItem != null) {
+                                pairedItem.name = newName
+                                pairedAdapter.notifyDataSetChanged()
                             }
                         }
                     }
@@ -357,6 +393,7 @@ object BluetoothDialogHelper {
         val filter = IntentFilter().apply {
             addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
             addAction(BluetoothDevice.ACTION_FOUND)
+            addAction(BluetoothDevice.ACTION_NAME_CHANGED)
             addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
             addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
@@ -382,11 +419,37 @@ object BluetoothDialogHelper {
         dialog.show()
     }
 
-    private fun getDeviceName(device: BluetoothDevice): String {
+    private fun getDeviceName(device: BluetoothDevice, extraName: String? = null): String {
+        if (!extraName.isNullOrBlank() && extraName != "Unknown Device" && extraName != "null") {
+            return extraName
+        }
         return try {
-            device.name ?: "Bluetooth Device"
+            val alias = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) device.alias else null
+            if (!alias.isNullOrBlank()) {
+                alias
+            } else if (!device.name.isNullOrBlank()) {
+                device.name
+            } else {
+                val major = device.bluetoothClass?.majorDeviceClass
+                val subClass = device.bluetoothClass?.deviceClass
+                val typeName = when (subClass) {
+                    android.bluetooth.BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES -> "Headphones"
+                    android.bluetooth.BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET -> "Headset"
+                    android.bluetooth.BluetoothClass.Device.AUDIO_VIDEO_LOUDSPEAKER -> "Speaker"
+                    else -> when (major) {
+                        android.bluetooth.BluetoothClass.Device.Major.AUDIO_VIDEO -> "Audio Device"
+                        android.bluetooth.BluetoothClass.Device.Major.PHONE -> "Phone"
+                        android.bluetooth.BluetoothClass.Device.Major.COMPUTER -> "PC"
+                        android.bluetooth.BluetoothClass.Device.Major.WEARABLE -> "Wearable"
+                        else -> "Bluetooth Device"
+                    }
+                }
+                val shortAddr = if (device.address.length >= 5) device.address.takeLast(5) else device.address
+                "$typeName ($shortAddr)"
+            }
         } catch (e: Exception) {
-            "Bluetooth Device"
+            val shortAddr = if (device.address.length >= 5) device.address.takeLast(5) else device.address
+            "Bluetooth Device ($shortAddr)"
         }
     }
 
