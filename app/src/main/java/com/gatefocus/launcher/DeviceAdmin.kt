@@ -109,12 +109,9 @@ object KioskManager {
                 val dpm = activity.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
                 val admin = ComponentName(activity, DeviceAdmin::class.java)
                 try {
-                    dpm.clearUserRestriction(admin, UserManager.DISALLOW_UNINSTALL_APPS)
-                    dpm.clearUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
-                    dpm.clearUserRestriction(admin, UserManager.DISALLOW_APPS_CONTROL)
-                    dpm.clearUserRestriction(admin, UserManager.DISALLOW_FACTORY_RESET)
-                    dpm.setUninstallBlocked(admin, activity.packageName, false)
                     dpm.setStatusBarDisabled(admin, false)
+                    // Keep baseline OS protections active (uninstall block, factory reset block, safe boot block)
+                    applyDeviceOwnerPolicies(activity)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -201,9 +198,14 @@ object KioskManager {
             // Block app management / force-stop in settings
             dpm.addUserRestriction(admin, UserManager.DISALLOW_APPS_CONTROL)
 
+            // Block factory reset
+            dpm.addUserRestriction(admin, UserManager.DISALLOW_FACTORY_RESET)
+
             // Block status bar expansion during active focus lock
             if (isFocusLockActive(context)) {
                 dpm.setStatusBarDisabled(admin, true)
+            } else {
+                dpm.setStatusBarDisabled(admin, false)
             }
         } catch (e: Exception) {
             e.printStackTrace()

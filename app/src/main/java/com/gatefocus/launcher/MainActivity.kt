@@ -248,6 +248,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (KioskManager.isDeviceOwner(this)) {
+            KioskManager.applyDeviceOwnerPolicies(this)
+        }
         updateProtectionCardStatus()
         updateStudyStats()
         if (hasStoragePermission()) {
@@ -423,14 +426,14 @@ class MainActivity : AppCompatActivity() {
         } else {
             sessionTimer?.cancel()
             ivShieldIcon.setImageResource(R.drawable.ic_shield)
-            ivShieldIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.accent)
-            tvProtectionStatus.text = "Focus Shield: Standby"
-            tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent))
-            tvAdminBadge.text = "READY"
-            tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent))
+            ivShieldIcon.imageTintList = ContextCompat.getColorStateList(this, if (KioskManager.isDeviceOwner(this)) R.color.accent_green else R.color.accent)
+            tvProtectionStatus.text = if (KioskManager.isDeviceOwner(this)) "Focus Shield: Device Owner Active" else "Focus Shield: Standby"
+            tvProtectionStatus.setTextColor(ContextCompat.getColor(this, if (KioskManager.isDeviceOwner(this)) R.color.accent_green else R.color.accent))
+            tvAdminBadge.text = if (KioskManager.isDeviceOwner(this)) "DEVICE OWNER" else "READY"
+            tvAdminBadge.setTextColor(ContextCompat.getColor(this, if (KioskManager.isDeviceOwner(this)) R.color.accent_green else R.color.accent))
             scrollDurationPresets.visibility = View.VISIBLE
             tvTimerDisplay.text = "Focus Duration: $selectedDurationMinutes min"
-            tvTimerSubtext.text = "Select study duration and lock distractions"
+            tvTimerSubtext.text = if (KioskManager.isDeviceOwner(this)) "Full OS-level restrictions active. Select duration to begin." else "Select study duration and lock distractions"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
             btnKioskToggle.text = "Start Focus (${selectedDurationMinutes}m)"
