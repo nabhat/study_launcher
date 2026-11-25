@@ -200,9 +200,7 @@ class VideoPlayerActivity : AppCompatActivity() {
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
         tvTitle = findViewById(R.id.tvVideoTitle)
         btnSpeed = findViewById(R.id.btnSpeed)
-        val btnRew = findViewById<ImageButton>(R.id.exo_rew)
         btnPlayPause = findViewById(R.id.btnPlayPause)
-        val btnFfwd = findViewById<ImageButton>(R.id.exo_ffwd)
         val btnBluetooth = findViewById<ImageButton>(R.id.btnBluetooth)
 
         btnBack?.setOnClickListener { finish() }
@@ -223,9 +221,6 @@ class VideoPlayerActivity : AppCompatActivity() {
         btnPlayPause.setOnClickListener {
             togglePlayPause()
         }
-
-        btnRew?.setOnClickListener { rewind10s() }
-        btnFfwd?.setOnClickListener { forward10s() }
 
         btnBluetooth?.setOnClickListener {
             BluetoothDialogHelper.show(this)

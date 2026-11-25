@@ -64,48 +64,18 @@
             app:tint="@color/white" />
     </LinearLayout>
 
-    <!-- Center Play/Pause & Rewind/Forward -->
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <!-- Center Play/Pause Button (Double-tap left/right for +/- 10s seek) -->
+    <ImageButton
+        android:id="@+id/btnPlayPause"
+        android:layout_width="76dp"
+        android:layout_height="76dp"
         android:layout_centerInParent="true"
-        android:gravity="center"
-        android:orientation="horizontal">
-
-        <ImageButton
-            android:id="@+id/exo_rew"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:background="@drawable/bg_circle_button"
-            android:contentDescription="Rewind 10 seconds"
-            android:padding="13dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_replay_10"
-            app:tint="@color/white" />
-
-        <ImageButton
-            android:id="@+id/btnPlayPause"
-            android:layout_width="76dp"
-            android:layout_height="76dp"
-            android:layout_marginHorizontal="36dp"
-            android:background="@drawable/bg_circle_button"
-            android:contentDescription="Play or Pause"
-            android:padding="18dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_pause"
-            app:tint="@color/accent" />
-
-        <ImageButton
-            android:id="@+id/exo_ffwd"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:background="@drawable/bg_circle_button"
-            android:contentDescription="Forward 10 seconds"
-            android:padding="13dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_forward_10"
-            app:tint="@color/white" />
-    </LinearLayout>
+        android:background="@drawable/bg_circle_button"
+        android:contentDescription="Play or Pause"
+        android:padding="18dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_pause"
+        app:tint="@color/accent" />
 
     <!-- Bottom Interactive Seek Bar (Zero time numbers shown) -->
     <LinearLayout
