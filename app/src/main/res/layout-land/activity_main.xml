@@ -546,50 +546,55 @@
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <!-- Tab Bar + Search + Hide Done -->
+            <!-- Full-Width Tab Bar -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="#141D2E"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
+
+                <com.google.android.material.tabs.TabLayout
+                    android:id="@+id/tabLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:background="@android:color/transparent"
+                    app:tabGravity="fill"
+                    app:tabIndicatorColor="@color/accent"
+                    app:tabIndicatorFullWidth="true"
+                    app:tabIndicatorHeight="3dp"
+                    app:tabInlineLabel="true"
+                    app:tabMode="fixed"
+                    app:tabSelectedTextColor="@color/accent"
+                    app:tabTextColor="@color/text_secondary">
+
+                    <com.google.android.material.tabs.TabItem
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:icon="@drawable/ic_video"
+                        android:text="Video Lectures" />
+
+                    <com.google.android.material.tabs.TabItem
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:icon="@drawable/ic_pdf"
+                        android:text="PDF Workbooks" />
+                </com.google.android.material.tabs.TabLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Search + Hide Done Row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp"
-                    android:layout_height="38dp"
-                    android:layout_weight="1"
-                    android:backgroundTint="#141D2E"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="0dp">
-
-                    <com.google.android.material.tabs.TabLayout
-                        android:id="@+id/tabLayout"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@android:color/transparent"
-                        app:tabIndicatorColor="@color/accent"
-                        app:tabIndicatorHeight="3dp"
-                        app:tabSelectedTextColor="@color/accent"
-                        app:tabTextColor="@color/text_secondary">
-
-                        <com.google.android.material.tabs.TabItem
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:icon="@drawable/ic_video"
-                            android:text="Video Lectures" />
-
-                        <com.google.android.material.tabs.TabItem
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:icon="@drawable/ic_pdf"
-                            android:text="PDF Workbooks" />
-                    </com.google.android.material.tabs.TabLayout>
-                </com.google.android.material.card.MaterialCardView>
-
                 <LinearLayout
-                    android:layout_width="220dp"
-                    android:layout_height="38dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
                     android:background="@drawable/bg_search_input"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
@@ -607,7 +612,7 @@
                         android:layout_height="match_parent"
                         android:layout_marginStart="6dp"
                         android:background="@null"
-                        android:hint="Search..."
+                        android:hint="Search lectures &amp; workbooks..."
                         android:imeOptions="actionSearch"
                         android:inputType="text"
                         android:maxLines="1"
@@ -621,7 +626,7 @@
                     style="@style/Widget.Material3.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="8dp"
                     android:checkable="true"
                     android:text="Hide Done"
                     android:textColor="@color/text_primary"
