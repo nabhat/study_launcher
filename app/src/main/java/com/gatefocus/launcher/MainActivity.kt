@@ -235,13 +235,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Launcher Switching Actions
+        // Open built-in Apps Drawer directly inside GateFocus
         btnSwitchHome.setOnClickListener {
-            if (KioskManager.isFocusLockActive(this)) {
-                Toast.makeText(this, "Cannot switch launcher while Focus Session is active.", Toast.LENGTH_SHORT).show()
-            } else {
-                LauncherHelper.launchSystemHome(this)
-            }
+            AppsDrawerActivity.start(this)
         }
 
         btnHomeSettings.setOnClickListener {
@@ -259,7 +255,7 @@ class MainActivity : AppCompatActivity() {
 
         btnCompleteSwitchHome.setOnClickListener {
             layoutSessionComplete.visibility = View.GONE
-            LauncherHelper.launchSystemHome(this)
+            AppsDrawerActivity.start(this)
         }
 
         btnCompleteDismiss.setOnClickListener {
@@ -389,9 +385,9 @@ class MainActivity : AppCompatActivity() {
             btnAllowedApps.text = "Locked"
             btnAllowedApps.setIconResource(R.drawable.ic_lock)
 
-            // Lock launcher switching buttons during focus session
-            btnSwitchHome.isEnabled = false
-            btnSwitchHome.alpha = 0.4f
+            // Allow opening built-in Apps Drawer even during Focus (shows only allowed study apps)
+            btnSwitchHome.isEnabled = true
+            btnSwitchHome.alpha = 1.0f
             btnHomeSettings.isEnabled = false
             btnHomeSettings.alpha = 0.4f
 
