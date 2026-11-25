@@ -30,29 +30,6 @@
         android:textStyle="bold"
         android:visibility="gone" />
 
-    <!-- Top Floating Pill for Touch Lock Mode -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnUnlockScreen"
-        android:layout_width="wrap_content"
-        android:layout_height="40dp"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="28dp"
-        android:backgroundTint="#CC0F172A"
-        android:insetTop="0dp"
-        android:insetBottom="0dp"
-        android:paddingHorizontal="18dp"
-        android:text="Controls Locked • Tap to Unlock"
-        android:textColor="@color/white"
-        android:textSize="13sp"
-        android:visibility="gone"
-        app:cornerRadius="20dp"
-        app:icon="@drawable/ic_lock"
-        app:iconPadding="8dp"
-        app:iconSize="16dp"
-        app:iconTint="@color/accent"
-        app:strokeColor="@color/accent"
-        app:strokeWidth="1dp" />
-
     <!-- Left Seek Indicator (Rewind 10s+) -->
     <TextView
         android:id="@+id/tvSeekLeft"

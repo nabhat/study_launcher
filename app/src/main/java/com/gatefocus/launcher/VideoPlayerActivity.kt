@@ -3,8 +3,6 @@ package com.gatefocus.launcher
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ActivityInfo
-import android.content.res.Configuration
 import android.media.AudioManager
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
@@ -56,7 +54,6 @@ class VideoPlayerActivity : AppCompatActivity() {
 
     // Player HUD & Overlay Controls
     private lateinit var tvSpeedBoostPill: TextView
-    private lateinit var btnUnlockScreen: MaterialButton
     private lateinit var layoutLectureComplete: MaterialCardView
     private lateinit var tvCompleteLectureTitle: TextView
     private lateinit var btnNextLecture: MaterialButton
@@ -92,7 +89,6 @@ class VideoPlayerActivity : AppCompatActivity() {
     private val speeds = arrayOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
     private val speedLabels = arrayOf("1.0x", "1.25x", "1.5x", "1.75x", "2.0x")
 
-    private var isTouchLocked = false
     private var isZoomFill = false
     private var isSpeedBoostActive = false
 
@@ -107,9 +103,6 @@ class VideoPlayerActivity : AppCompatActivity() {
 
     private val hudHandler = Handler(Looper.getMainLooper())
     private var hudRunnable: Runnable? = null
-
-    private val unlockHandler = Handler(Looper.getMainLooper())
-    private var unlockRunnable: Runnable? = null
 
     companion object {
         const val EXTRA_VIDEO_PATH = "extra_video_path"
@@ -167,7 +160,6 @@ class VideoPlayerActivity : AppCompatActivity() {
         tvSeekLeft = findViewById(R.id.tvSeekLeft)
         tvSeekRight = findViewById(R.id.tvSeekRight)
         tvSpeedBoostPill = findViewById(R.id.tvSpeedBoostPill)
-        btnUnlockScreen = findViewById(R.id.btnUnlockScreen)
         layoutLectureComplete = findViewById(R.id.layoutLectureComplete)
         tvCompleteLectureTitle = findViewById(R.id.tvCompleteLectureTitle)
         btnNextLecture = findViewById(R.id.btnNextLecture)
@@ -193,8 +185,6 @@ class VideoPlayerActivity : AppCompatActivity() {
         btnPlayPause = findViewById(R.id.btnPlayPause)
         val btnFfwd = findViewById<ImageButton>(R.id.exo_ffwd)
         btnAspectFit = findViewById(R.id.btnAspectFit)
-        val btnRotate = findViewById<ImageButton>(R.id.btnRotate)
-        val btnTouchLock = findViewById<ImageButton>(R.id.btnTouchLock)
         val btnBluetooth = findViewById<ImageButton>(R.id.btnBluetooth)
 
         btnBack?.setOnClickListener { finish() }
@@ -226,23 +216,6 @@ class VideoPlayerActivity : AppCompatActivity() {
             btnAspectFit.setImageResource(
                 if (isZoomFill) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen
             )
-        }
-
-        btnRotate.setOnClickListener {
-            val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-            requestedOrientation = if (isLandscape) {
-                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            } else {
-                ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-            }
-        }
-
-        btnTouchLock.setOnClickListener {
-            setTouchLocked(true)
-        }
-
-        btnUnlockScreen.setOnClickListener {
-            setTouchLocked(false)
         }
 
         btnBluetooth?.setOnClickListener {
@@ -285,35 +258,6 @@ class VideoPlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun setTouchLocked(locked: Boolean) {
-        isTouchLocked = locked
-        if (locked) {
-            playerView.hideController()
-            playerView.useController = false
-            showUnlockPillTemporarily()
-        } else {
-            unlockRunnable?.let { unlockHandler.removeCallbacks(it) }
-            btnUnlockScreen.visibility = View.GONE
-            playerView.useController = true
-            playerView.showController()
-        }
-    }
-
-    private fun showUnlockPillTemporarily() {
-        unlockRunnable?.let { unlockHandler.removeCallbacks(it) }
-        btnUnlockScreen.alpha = 1.0f
-        btnUnlockScreen.visibility = View.VISIBLE
-        val runnable = Runnable {
-            btnUnlockScreen.animate()
-                .alpha(0f)
-                .setDuration(200)
-                .withEndAction { btnUnlockScreen.visibility = View.GONE }
-                .start()
-        }
-        unlockRunnable = runnable
-        unlockHandler.postDelayed(runnable, 2200L)
-    }
-
     @SuppressLint("ClickableViewAccessibility")
     private fun setupGestures() {
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -332,10 +276,6 @@ class VideoPlayerActivity : AppCompatActivity() {
             override fun onDown(e: MotionEvent): Boolean = true
 
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                if (isTouchLocked) {
-                    showUnlockPillTemporarily()
-                    return true
-                }
                 if (layoutLectureComplete.visibility == View.VISIBLE) return true
 
                 if (playerView.isControllerFullyVisible) {
@@ -347,7 +287,7 @@ class VideoPlayerActivity : AppCompatActivity() {
             }
 
             override fun onDoubleTap(e: MotionEvent): Boolean {
-                if (isTouchLocked || layoutLectureComplete.visibility == View.VISIBLE) return true
+                if (layoutLectureComplete.visibility == View.VISIBLE) return true
                 val width = playerView.width
                 if (width > 0) {
                     if (e.x < width / 2) {
@@ -360,7 +300,7 @@ class VideoPlayerActivity : AppCompatActivity() {
             }
 
             override fun onLongPress(e: MotionEvent) {
-                if (isTouchLocked || hasScrolled || layoutLectureComplete.visibility == View.VISIBLE) return
+                if (hasScrolled || layoutLectureComplete.visibility == View.VISIBLE) return
                 val exo = player ?: return
                 if (!exo.isPlaying) return
                 isSpeedBoostActive = true
@@ -371,13 +311,6 @@ class VideoPlayerActivity : AppCompatActivity() {
         })
 
         playerView.setOnTouchListener { _, event ->
-            if (isTouchLocked) {
-                if (event.actionMasked == MotionEvent.ACTION_UP) {
-                    showUnlockPillTemporarily()
-                }
-                return@setOnTouchListener true
-            }
-
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     startX = event.x
@@ -831,7 +764,6 @@ class VideoPlayerActivity : AppCompatActivity() {
         super.onDestroy()
         seekRunnable?.let { seekHandler.removeCallbacks(it) }
         hudRunnable?.let { hudHandler.removeCallbacks(it) }
-        unlockRunnable?.let { unlockHandler.removeCallbacks(it) }
         saveCurrentProgress()
         mediaSession?.isActive = false
         mediaSession?.release()

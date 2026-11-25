@@ -63,30 +63,6 @@
             android:src="@drawable/ic_fullscreen"
             app:tint="@color/white" />
 
-        <!-- Orientation Toggle -->
-        <ImageButton
-            android:id="@+id/btnRotate"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/bg_circle_button"
-            android:contentDescription="Rotate Screen"
-            android:padding="8dp"
-            android:src="@drawable/ic_screen_rotation"
-            app:tint="@color/white" />
-
-        <!-- Touch Lock Toggle -->
-        <ImageButton
-            android:id="@+id/btnTouchLock"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/bg_circle_button"
-            android:contentDescription="Lock Controls"
-            android:padding="8dp"
-            android:src="@drawable/ic_lock_open"
-            app:tint="@color/white" />
-
         <!-- Bluetooth Headphones Button -->
         <ImageButton
             android:id="@+id/btnBluetooth"

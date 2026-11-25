@@ -30,6 +30,17 @@ class FocusGuardianService : AccessibilityService() {
             "restart in safe mode"
         )
 
+        @Volatile
+        private var bluetoothPromptGraceUntilMs: Long = 0L
+
+        fun allowTransientBluetoothPrompt(durationMs: Long = 12_000L) {
+            bluetoothPromptGraceUntilMs = System.currentTimeMillis() + durationMs
+        }
+
+        fun clearTransientBluetoothPrompt() {
+            bluetoothPromptGraceUntilMs = 0L
+        }
+
         fun isSettingsPackage(pkg: String): Boolean {
             val lower = pkg.lowercase()
             return lower == "com.android.settings" ||
@@ -68,6 +79,17 @@ class FocusGuardianService : AccessibilityService() {
 
         // Always allow GateFocus itself
         if (foregroundPackage == packageName) return
+
+        // Allow system Bluetooth enable / pairing consent dialogs triggered explicitly from our in-app Bluetooth manager
+        val className = event.className?.toString() ?: ""
+        val isTransientBtPrompt = System.currentTimeMillis() <= bluetoothPromptGraceUntilMs &&
+            (foregroundPackage == "com.android.bluetooth" || isSettingsPackage(foregroundPackage)) &&
+            !className.contains("SubSettings", ignoreCase = true) &&
+            !className.endsWith(".Settings", ignoreCase = true)
+
+        if (isTransientBtPrompt && !isTamperAttempt()) {
+            return
+        }
 
         // Handle Home Launcher apps:
         // If a 3rd party launcher (e.g. Samsung One UI) opens while Focus Lock is active:

@@ -282,6 +282,7 @@ object BluetoothDialogHelper {
             Toast.makeText(activity, "Pairing with ${item.name}...", Toast.LENGTH_SHORT).show()
 
             try {
+                FocusGuardianService.allowTransientBluetoothPrompt(20_000L)
                 item.device.createBond()
             } catch (e: Exception) {
                 Toast.makeText(activity, "Failed to initiate pairing: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -328,8 +329,13 @@ object BluetoothDialogHelper {
         }, BluetoothProfile.HEADSET)
 
         btnEnableBt.setOnClickListener {
+            FocusGuardianService.allowTransientBluetoothPrompt(15_000L)
             val enableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            activity.startActivity(enableIntent)
+            try {
+                activity.startActivity(enableIntent)
+            } catch (e: Exception) {
+                Toast.makeText(activity, "Unable to open Bluetooth prompt: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
 
         fun startFullScan() {
@@ -392,7 +398,12 @@ object BluetoothDialogHelper {
             override fun onReceive(context: Context?, intent: Intent?) {
                 when (intent?.action) {
                     BluetoothAdapter.ACTION_STATE_CHANGED -> {
+                        val btState = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
                         refreshPairedList()
+                        if (btState == BluetoothAdapter.STATE_ON) {
+                            FocusGuardianService.clearTransientBluetoothPrompt()
+                            startFullScan()
+                        }
                     }
                     BluetoothDevice.ACTION_FOUND -> {
                         val dev: BluetoothDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
