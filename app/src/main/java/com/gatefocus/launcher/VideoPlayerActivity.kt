@@ -3,6 +3,8 @@ package com.gatefocus.launcher
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.media.AudioManager
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
@@ -23,16 +25,22 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.gatefocus.launcher.data.StudyProgressManager
+import com.gatefocus.launcher.data.TitleFormatter
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -45,6 +53,20 @@ class VideoPlayerActivity : AppCompatActivity() {
     private lateinit var progressManager: StudyProgressManager
     private lateinit var tvSeekLeft: TextView
     private lateinit var tvSeekRight: TextView
+
+    // Player HUD & Overlay Controls
+    private lateinit var tvSpeedBoostPill: TextView
+    private lateinit var btnUnlockScreen: MaterialButton
+    private lateinit var layoutLectureComplete: MaterialCardView
+    private lateinit var tvCompleteLectureTitle: TextView
+    private lateinit var btnNextLecture: MaterialButton
+    private lateinit var btnReplayLecture: MaterialButton
+    private lateinit var btnFinishPlayer: MaterialButton
+
+    private lateinit var tvTitle: TextView
+    private lateinit var btnSpeed: Button
+    private lateinit var btnPlayPause: ImageButton
+    private lateinit var btnAspectFit: ImageButton
 
     // VLC Gesture HUD Elements
     private lateinit var layoutBrightnessIndicator: LinearLayout
@@ -61,9 +83,24 @@ class VideoPlayerActivity : AppCompatActivity() {
     private var maxVolume = 15
 
     private var videoPath: String = ""
+    private var videoTitle: String = "Lecture"
+    private var playlistPaths: ArrayList<String> = arrayListOf()
+    private var playlistTitles: ArrayList<String> = arrayListOf()
+    private var currentIndex: Int = 0
+
     private var currentSpeedIndex = 0
     private val speeds = arrayOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
     private val speedLabels = arrayOf("1.0x", "1.25x", "1.5x", "1.75x", "2.0x")
+
+    private var isTouchLocked = false
+    private var isZoomFill = false
+    private var isSpeedBoostActive = false
+
+    private var lastSeekDirection = 0 // -1 left, 1 right
+    private var accumulatedSeekSeconds = 0
+    private var lastDoubleTapTimeMs = 0L
+
+    private var activePlaybackStartMs = 0L
 
     private val seekHandler = Handler(Looper.getMainLooper())
     private var seekRunnable: Runnable? = null
@@ -71,14 +108,37 @@ class VideoPlayerActivity : AppCompatActivity() {
     private val hudHandler = Handler(Looper.getMainLooper())
     private var hudRunnable: Runnable? = null
 
+    private val unlockHandler = Handler(Looper.getMainLooper())
+    private var unlockRunnable: Runnable? = null
+
     companion object {
         const val EXTRA_VIDEO_PATH = "extra_video_path"
         const val EXTRA_VIDEO_TITLE = "extra_video_title"
+        const val EXTRA_PLAYLIST_PATHS = "extra_playlist_paths"
+        const val EXTRA_PLAYLIST_TITLES = "extra_playlist_titles"
+        const val EXTRA_CURRENT_INDEX = "extra_current_index"
 
         fun start(context: Context, filePath: String, title: String) {
             val intent = Intent(context, VideoPlayerActivity::class.java).apply {
                 putExtra(EXTRA_VIDEO_PATH, filePath)
                 putExtra(EXTRA_VIDEO_TITLE, title)
+            }
+            context.startActivity(intent)
+        }
+
+        fun startPlaylist(
+            context: Context,
+            paths: ArrayList<String>,
+            titles: ArrayList<String>,
+            startIndex: Int
+        ) {
+            val safeIdx = startIndex.coerceIn(0, (paths.size - 1).coerceAtLeast(0))
+            val intent = Intent(context, VideoPlayerActivity::class.java).apply {
+                putExtra(EXTRA_VIDEO_PATH, paths.getOrElse(safeIdx) { "" })
+                putExtra(EXTRA_VIDEO_TITLE, titles.getOrElse(safeIdx) { "Lecture" })
+                putStringArrayListExtra(EXTRA_PLAYLIST_PATHS, paths)
+                putStringArrayListExtra(EXTRA_PLAYLIST_TITLES, titles)
+                putExtra(EXTRA_CURRENT_INDEX, safeIdx)
             }
             context.startActivity(intent)
         }
@@ -89,14 +149,30 @@ class VideoPlayerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContentView(R.layout.activity_video_player)
-
-        videoPath = intent.getStringExtra(EXTRA_VIDEO_PATH) ?: ""
-        val videoTitle = intent.getStringExtra(EXTRA_VIDEO_TITLE) ?: "Lecture"
+        enableImmersiveFullscreen()
 
         progressManager = StudyProgressManager(this)
+        currentSpeedIndex = progressManager.getPreferredSpeedIndex().coerceIn(0, speeds.lastIndex)
+
+        playlistPaths = intent.getStringArrayListExtra(EXTRA_PLAYLIST_PATHS) ?: arrayListOf()
+        playlistTitles = intent.getStringArrayListExtra(EXTRA_PLAYLIST_TITLES) ?: arrayListOf()
+        currentIndex = intent.getIntExtra(EXTRA_CURRENT_INDEX, 0)
+
+        videoPath = intent.getStringExtra(EXTRA_VIDEO_PATH) ?: ""
+        val rawTitle = intent.getStringExtra(EXTRA_VIDEO_TITLE) ?: "Lecture"
+        videoTitle = TitleFormatter.cleanLectureTitle(rawTitle)
+
         playerView = findViewById(R.id.playerView)
+        playerView.controllerShowTimeoutMs = 3000
         tvSeekLeft = findViewById(R.id.tvSeekLeft)
         tvSeekRight = findViewById(R.id.tvSeekRight)
+        tvSpeedBoostPill = findViewById(R.id.tvSpeedBoostPill)
+        btnUnlockScreen = findViewById(R.id.btnUnlockScreen)
+        layoutLectureComplete = findViewById(R.id.layoutLectureComplete)
+        tvCompleteLectureTitle = findViewById(R.id.tvCompleteLectureTitle)
+        btnNextLecture = findViewById(R.id.btnNextLecture)
+        btnReplayLecture = findViewById(R.id.btnReplayLecture)
+        btnFinishPlayer = findViewById(R.id.btnFinishPlayer)
 
         // VLC Gesture HUD Elements
         layoutBrightnessIndicator = findViewById(R.id.layoutBrightnessIndicator)
@@ -111,36 +187,131 @@ class VideoPlayerActivity : AppCompatActivity() {
 
         // Setup custom controller buttons
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
-        val tvTitle = findViewById<TextView>(R.id.tvVideoTitle)
-        val btnSpeed = findViewById<Button>(R.id.btnSpeed)
+        tvTitle = findViewById(R.id.tvVideoTitle)
+        btnSpeed = findViewById(R.id.btnSpeed)
         val btnRew = findViewById<ImageButton>(R.id.exo_rew)
+        btnPlayPause = findViewById(R.id.btnPlayPause)
         val btnFfwd = findViewById<ImageButton>(R.id.exo_ffwd)
+        btnAspectFit = findViewById(R.id.btnAspectFit)
+        val btnRotate = findViewById<ImageButton>(R.id.btnRotate)
+        val btnTouchLock = findViewById<ImageButton>(R.id.btnTouchLock)
         val btnBluetooth = findViewById<ImageButton>(R.id.btnBluetooth)
 
         btnBack?.setOnClickListener { finish() }
-        tvTitle?.text = videoTitle
+        tvTitle.text = videoTitle
+        btnSpeed.text = speedLabels[currentSpeedIndex]
 
-        btnSpeed?.setOnClickListener {
+        btnSpeed.setOnClickListener {
             currentSpeedIndex = (currentSpeedIndex + 1) % speeds.size
+            progressManager.savePreferredSpeedIndex(currentSpeedIndex)
             val selectedSpeed = speeds[currentSpeedIndex]
             player?.playbackParameters = PlaybackParameters(selectedSpeed)
             btnSpeed.text = speedLabels[currentSpeedIndex]
         }
 
-        btnRew?.setOnClickListener {
-            rewind10s()
+        btnPlayPause.setOnClickListener {
+            togglePlayPause()
         }
 
-        btnFfwd?.setOnClickListener {
-            forward10s()
+        btnRew?.setOnClickListener { rewind10s() }
+        btnFfwd?.setOnClickListener { forward10s() }
+
+        btnAspectFit.setOnClickListener {
+            isZoomFill = !isZoomFill
+            playerView.resizeMode = if (isZoomFill) {
+                AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            } else {
+                AspectRatioFrameLayout.RESIZE_MODE_FIT
+            }
+            btnAspectFit.setImageResource(
+                if (isZoomFill) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen
+            )
+        }
+
+        btnRotate.setOnClickListener {
+            val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+            requestedOrientation = if (isLandscape) {
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            } else {
+                ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            }
+        }
+
+        btnTouchLock.setOnClickListener {
+            setTouchLocked(true)
+        }
+
+        btnUnlockScreen.setOnClickListener {
+            setTouchLocked(false)
         }
 
         btnBluetooth?.setOnClickListener {
             BluetoothDialogHelper.show(this)
         }
 
+        btnNextLecture.setOnClickListener {
+            val nextIdx = currentIndex + 1
+            if (nextIdx < playlistPaths.size) {
+                playLectureAtIndex(nextIdx)
+            }
+        }
+
+        btnReplayLecture.setOnClickListener {
+            layoutLectureComplete.visibility = View.GONE
+            player?.let { exo ->
+                exo.seekTo(0L)
+                exo.playWhenReady = true
+                exo.play()
+            }
+        }
+
+        btnFinishPlayer.setOnClickListener { finish() }
+
         setupGestures()
         initializePlayer()
+    }
+
+    private fun enableImmersiveFullscreen() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            enableImmersiveFullscreen()
+        }
+    }
+
+    private fun setTouchLocked(locked: Boolean) {
+        isTouchLocked = locked
+        if (locked) {
+            playerView.hideController()
+            playerView.useController = false
+            showUnlockPillTemporarily()
+        } else {
+            unlockRunnable?.let { unlockHandler.removeCallbacks(it) }
+            btnUnlockScreen.visibility = View.GONE
+            playerView.useController = true
+            playerView.showController()
+        }
+    }
+
+    private fun showUnlockPillTemporarily() {
+        unlockRunnable?.let { unlockHandler.removeCallbacks(it) }
+        btnUnlockScreen.alpha = 1.0f
+        btnUnlockScreen.visibility = View.VISIBLE
+        val runnable = Runnable {
+            btnUnlockScreen.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction { btnUnlockScreen.visibility = View.GONE }
+                .start()
+        }
+        unlockRunnable = runnable
+        unlockHandler.postDelayed(runnable, 2200L)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -161,6 +332,12 @@ class VideoPlayerActivity : AppCompatActivity() {
             override fun onDown(e: MotionEvent): Boolean = true
 
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                if (isTouchLocked) {
+                    showUnlockPillTemporarily()
+                    return true
+                }
+                if (layoutLectureComplete.visibility == View.VISIBLE) return true
+
                 if (playerView.isControllerFullyVisible) {
                     playerView.hideController()
                 } else {
@@ -170,6 +347,7 @@ class VideoPlayerActivity : AppCompatActivity() {
             }
 
             override fun onDoubleTap(e: MotionEvent): Boolean {
+                if (isTouchLocked || layoutLectureComplete.visibility == View.VISIBLE) return true
                 val width = playerView.width
                 if (width > 0) {
                     if (e.x < width / 2) {
@@ -180,9 +358,26 @@ class VideoPlayerActivity : AppCompatActivity() {
                 }
                 return true
             }
+
+            override fun onLongPress(e: MotionEvent) {
+                if (isTouchLocked || hasScrolled || layoutLectureComplete.visibility == View.VISIBLE) return
+                val exo = player ?: return
+                if (!exo.isPlaying) return
+                isSpeedBoostActive = true
+                exo.playbackParameters = PlaybackParameters(2.0f)
+                tvSpeedBoostPill.alpha = 1.0f
+                tvSpeedBoostPill.visibility = View.VISIBLE
+            }
         })
 
         playerView.setOnTouchListener { _, event ->
+            if (isTouchLocked) {
+                if (event.actionMasked == MotionEvent.ACTION_UP) {
+                    showUnlockPillTemporarily()
+                }
+                return@setOnTouchListener true
+            }
+
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     startX = event.x
@@ -191,7 +386,6 @@ class VideoPlayerActivity : AppCompatActivity() {
                     isAdjustingBrightness = false
                     isAdjustingVolume = false
 
-                    // Cache current window brightness
                     val winBrightness = window.attributes.screenBrightness
                     initialBrightness = if (winBrightness >= 0f) {
                         winBrightness
@@ -203,7 +397,6 @@ class VideoPlayerActivity : AppCompatActivity() {
                         }
                     }.coerceIn(0.01f, 1.0f)
 
-                    // Cache current volume fraction
                     val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
                     initialVolumeFraction = (currentVol.toFloat() / maxVolume).coerceIn(0f, 1f)
 
@@ -211,6 +404,10 @@ class VideoPlayerActivity : AppCompatActivity() {
                 }
 
                 MotionEvent.ACTION_MOVE -> {
+                    if (isSpeedBoostActive) {
+                        return@setOnTouchListener true
+                    }
+
                     val deltaX = event.x - startX
                     val deltaY = event.y - startY
 
@@ -226,8 +423,6 @@ class VideoPlayerActivity : AppCompatActivity() {
                     }
 
                     if (hasScrolled) {
-                        // In screen coordinates: swiping UP gives negative deltaY.
-                        // So -deltaY increases brightness/volume.
                         val height = playerView.height.coerceAtLeast(1)
                         val deltaFraction = (-deltaY) / (height * 0.75f)
 
@@ -250,7 +445,12 @@ class VideoPlayerActivity : AppCompatActivity() {
                 }
 
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (hasScrolled) {
+                    if (isSpeedBoostActive) {
+                        isSpeedBoostActive = false
+                        player?.playbackParameters = PlaybackParameters(speeds[currentSpeedIndex])
+                        tvSpeedBoostPill.visibility = View.GONE
+                        true
+                    } else if (hasScrolled) {
                         scheduleHudFadeOut()
                         hasScrolled = false
                         isAdjustingBrightness = false
@@ -307,20 +507,31 @@ class VideoPlayerActivity : AppCompatActivity() {
 
     private fun rewind10s() {
         val exo = player ?: return
-        val current = exo.currentPosition
-        val newPos = (current - 10000L).coerceAtLeast(0L)
+        val newPos = (exo.currentPosition - 10000L).coerceAtLeast(0L)
         exo.seekTo(newPos)
-        showSeekFeedback(tvSeekLeft, "-10s")
+        recordSeekFeedback(direction = -1, view = tvSeekLeft)
     }
 
     private fun forward10s() {
         val exo = player ?: return
-        val current = exo.currentPosition
         val duration = exo.duration
-        val target = current + 10000L
+        val target = exo.currentPosition + 10000L
         val newPos = if (duration > 0) target.coerceAtMost(duration) else target
         exo.seekTo(newPos)
-        showSeekFeedback(tvSeekRight, "+10s")
+        recordSeekFeedback(direction = 1, view = tvSeekRight)
+    }
+
+    private fun recordSeekFeedback(direction: Int, view: TextView) {
+        val now = System.currentTimeMillis()
+        if (direction == lastSeekDirection && now - lastDoubleTapTimeMs <= 900L) {
+            accumulatedSeekSeconds += 10
+        } else {
+            lastSeekDirection = direction
+            accumulatedSeekSeconds = 10
+        }
+        lastDoubleTapTimeMs = now
+        val label = if (direction < 0) "-${accumulatedSeekSeconds}s" else "+${accumulatedSeekSeconds}s"
+        showSeekFeedback(view, label)
     }
 
     private fun showSeekFeedback(view: TextView, text: String) {
@@ -344,7 +555,10 @@ class VideoPlayerActivity : AppCompatActivity() {
             view.animate()
                 .alpha(0f)
                 .setDuration(200)
-                .withEndAction { view.visibility = View.GONE }
+                .withEndAction {
+                    view.visibility = View.GONE
+                    accumulatedSeekSeconds = 0
+                }
                 .start()
         }
         seekRunnable = runnable
@@ -377,32 +591,86 @@ class VideoPlayerActivity : AppCompatActivity() {
         player = exo
         playerView.player = exo
 
-        val mediaItem = MediaItem.fromUri(Uri.fromFile(videoFile))
-        exo.setMediaItem(mediaItem)
-
-        // Resume from previous timestamp
-        val savedPosition = progressManager.getVideoProgress(videoPath)
-        if (savedPosition > 0) {
-            exo.seekTo(savedPosition)
-        }
-
-        exo.prepare()
-        exo.playWhenReady = true
-
-        setupMediaSession()
-
         exo.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_READY || playbackState == Player.STATE_ENDED) {
+                if (playbackState == Player.STATE_READY) {
                     saveCurrentProgress()
+                } else if (playbackState == Player.STATE_ENDED) {
+                    markCurrentLectureEnded()
                 }
                 updatePlaybackState()
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) {
+                    activePlaybackStartMs = System.currentTimeMillis()
+                    layoutLectureComplete.visibility = View.GONE
+                } else {
+                    trackElapsedStudyTime()
+                }
+                syncPlayPauseIcon(isPlaying)
                 updatePlaybackState()
             }
         })
+
+        setupMediaSession()
+        loadLectureIntoPlayer(videoFile, resetIfCompleted = true)
+    }
+
+    private fun loadLectureIntoPlayer(videoFile: File, resetIfCompleted: Boolean) {
+        val exo = player ?: return
+        layoutLectureComplete.visibility = View.GONE
+        progressManager.saveLastPlayedVideo(videoFile.absolutePath)
+
+        val mediaItem = MediaItem.fromUri(Uri.fromFile(videoFile))
+        exo.setMediaItem(mediaItem)
+
+        val savedPosition = progressManager.getVideoProgress(videoFile.absolutePath)
+        val isDone = progressManager.isVideoCompleted(videoFile.absolutePath)
+        if (savedPosition > 0 && !(resetIfCompleted && isDone)) {
+            exo.seekTo(savedPosition)
+        } else {
+            exo.seekTo(0L)
+        }
+
+        exo.playbackParameters = PlaybackParameters(speeds[currentSpeedIndex])
+        exo.prepare()
+        exo.playWhenReady = true
+        syncPlayPauseIcon(true)
+    }
+
+    private fun playLectureAtIndex(index: Int) {
+        val nextPath = playlistPaths.getOrNull(index) ?: return
+        val nextFile = File(nextPath)
+        if (!nextFile.exists()) return
+
+        saveCurrentProgress()
+        currentIndex = index
+        videoPath = nextPath
+        videoTitle = TitleFormatter.cleanLectureTitle(playlistTitles.getOrElse(index) { nextFile.nameWithoutExtension })
+        tvTitle.text = videoTitle
+        loadLectureIntoPlayer(nextFile, resetIfCompleted = true)
+    }
+
+    private fun markCurrentLectureEnded() {
+        val exo = player ?: return
+        val duration = exo.duration
+        if (duration > 0 && videoPath.isNotEmpty()) {
+            progressManager.saveVideoProgress(videoPath, duration, duration)
+        }
+        trackElapsedStudyTime()
+
+        val hasNext = currentIndex + 1 < playlistPaths.size
+        tvCompleteLectureTitle.text = videoTitle
+        btnNextLecture.visibility = if (hasNext) View.VISIBLE else View.GONE
+        playerView.hideController()
+        layoutLectureComplete.visibility = View.VISIBLE
+    }
+
+    private fun syncPlayPauseIcon(isPlaying: Boolean) {
+        if (::btnPlayPause.isInitialized) {
+            btnPlayPause.setImageResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
+        }
     }
 
     private fun setupMediaSession() {
@@ -454,7 +722,7 @@ class VideoPlayerActivity : AppCompatActivity() {
             @Suppress("DEPRECATION")
             setFlags(
                 MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or
-                MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS
+                    MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS
             )
             isActive = true
         }
@@ -477,10 +745,10 @@ class VideoPlayerActivity : AppCompatActivity() {
         val stateBuilder = PlaybackState.Builder()
             .setActions(
                 PlaybackState.ACTION_PLAY or
-                PlaybackState.ACTION_PAUSE or
-                PlaybackState.ACTION_PLAY_PAUSE or
-                PlaybackState.ACTION_FAST_FORWARD or
-                PlaybackState.ACTION_REWIND
+                    PlaybackState.ACTION_PAUSE or
+                    PlaybackState.ACTION_PLAY_PAUSE or
+                    PlaybackState.ACTION_FAST_FORWARD or
+                    PlaybackState.ACTION_REWIND
             )
             .setState(
                 if (isPlaying) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED,
@@ -519,31 +787,33 @@ class VideoPlayerActivity : AppCompatActivity() {
         return super.dispatchKeyEvent(event)
     }
 
-    private var sessionStartTimeMs = 0L
-
     private fun saveCurrentProgress() {
         val exo = player ?: return
         val current = exo.currentPosition
         val duration = exo.duration
-        if (duration > 0 && videoPath.isNotEmpty()) {
+        if (duration > 0 && videoPath.isNotEmpty() && exo.playbackState != Player.STATE_ENDED) {
             progressManager.saveVideoProgress(videoPath, current, duration)
         }
         trackElapsedStudyTime()
     }
 
     private fun trackElapsedStudyTime() {
-        if (sessionStartTimeMs > 0) {
-            val elapsedSecs = (System.currentTimeMillis() - sessionStartTimeMs) / 1000L
-            if (elapsedSecs > 5) {
+        if (activePlaybackStartMs > 0L) {
+            val now = System.currentTimeMillis()
+            val elapsedSecs = (now - activePlaybackStartMs) / 1000L
+            if (elapsedSecs > 5L) {
                 progressManager.addStudySeconds(elapsedSecs)
             }
-            sessionStartTimeMs = System.currentTimeMillis()
+            activePlaybackStartMs = if (player?.isPlaying == true) now else 0L
         }
     }
 
     override fun onResume() {
         super.onResume()
-        sessionStartTimeMs = System.currentTimeMillis()
+        enableImmersiveFullscreen()
+        if (player?.isPlaying == true && activePlaybackStartMs == 0L) {
+            activePlaybackStartMs = System.currentTimeMillis()
+        }
     }
 
     override fun onPause() {
@@ -561,6 +831,7 @@ class VideoPlayerActivity : AppCompatActivity() {
         super.onDestroy()
         seekRunnable?.let { seekHandler.removeCallbacks(it) }
         hudRunnable?.let { hudHandler.removeCallbacks(it) }
+        unlockRunnable?.let { unlockHandler.removeCallbacks(it) }
         saveCurrentProgress()
         mediaSession?.isActive = false
         mediaSession?.release()

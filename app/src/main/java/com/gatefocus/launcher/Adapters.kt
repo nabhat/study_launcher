@@ -10,11 +10,13 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.gatefocus.launcher.data.PdfItem
+import com.gatefocus.launcher.data.TitleFormatter
 import com.gatefocus.launcher.data.VideoItem
 
 class VideoAdapter(
     private val videos: List<VideoItem>,
-    private val onVideoClick: (VideoItem) -> Unit
+    private val onVideoClick: (VideoItem) -> Unit,
+    private val onVideoLongClick: (VideoItem) -> Unit = {}
 ) : RecyclerView.Adapter<VideoAdapter.VideoViewHolder>() {
 
     class VideoViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -33,7 +35,7 @@ class VideoAdapter(
 
     override fun onBindViewHolder(holder: VideoViewHolder, position: Int) {
         val video = videos[position]
-        holder.tvTitle.text = video.title
+        holder.tvTitle.text = TitleFormatter.cleanLectureTitle(video.title)
         holder.tvFolder.text = video.playlistName
 
         if (video.thumbnailFile != null && video.thumbnailFile.exists()) {
@@ -49,9 +51,7 @@ class VideoAdapter(
         } else if (video.progressMs > 0) {
             holder.tvCompletedBadge.visibility = View.GONE
             holder.pbVideoProgress.progress = video.progressPercent
-            val currentMins = video.progressMs / 60000
-            val totalMins = video.durationMs / 60000
-            holder.tvProgressText.text = "Resuming: $currentMins min / $totalMins min (${video.progressPercent}%)"
+            holder.tvProgressText.text = "In progress • ${video.progressPercent}%"
         } else {
             holder.tvCompletedBadge.visibility = View.GONE
             holder.pbVideoProgress.progress = 0
@@ -59,6 +59,10 @@ class VideoAdapter(
         }
 
         holder.itemView.setOnClickListener { onVideoClick(video) }
+        holder.itemView.setOnLongClickListener {
+            onVideoLongClick(video)
+            true
+        }
     }
 
     override fun getItemCount(): Int = videos.size

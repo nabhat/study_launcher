@@ -54,6 +54,43 @@ class StudyProgressManager(context: Context) {
         return prefs.getBoolean("${filePath}_done", false)
     }
 
+    fun setVideoCompleted(filePath: String, completed: Boolean) {
+        val editor = prefs.edit().putBoolean("${filePath}_done", completed)
+        if (!completed) {
+            val dur = getVideoDuration(filePath)
+            val pos = getVideoProgress(filePath)
+            // Clear near-end timestamp so unmarking doesn't immediately re-trigger auto-complete
+            if (dur > 0 && (pos.toDouble() / dur) >= 0.88) {
+                editor.putLong("${filePath}_pos", 0L)
+            }
+        }
+        editor.apply()
+    }
+
+    fun saveLastPlayedVideo(filePath: String) {
+        prefs.edit().putString("last_played_video_path", filePath).apply()
+    }
+
+    fun getLastPlayedVideo(): String? {
+        return prefs.getString("last_played_video_path", null)
+    }
+
+    fun savePreferredSpeedIndex(index: Int) {
+        prefs.edit().putInt("preferred_speed_index", index).apply()
+    }
+
+    fun getPreferredSpeedIndex(): Int {
+        return prefs.getInt("preferred_speed_index", 0)
+    }
+
+    fun setHideCompleted(hide: Boolean) {
+        prefs.edit().putBoolean("hide_completed_videos", hide).apply()
+    }
+
+    fun getHideCompleted(): Boolean {
+        return prefs.getBoolean("hide_completed_videos", false)
+    }
+
     fun savePdfPage(filePath: String, pageIndex: Int) {
         prefs.edit().putInt("${filePath}_page", pageIndex).apply()
     }

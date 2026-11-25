@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#66000000"
-    android:padding="16dp">
+    android:paddingHorizontal="20dp"
+    android:paddingVertical="18dp">
 
     <!-- Top Bar -->
     <LinearLayout
@@ -17,9 +18,11 @@
 
         <ImageButton
             android:id="@+id/btnBack"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:background="@drawable/bg_circle_button"
+            android:contentDescription="Back"
+            android:padding="9dp"
             android:src="@drawable/ic_arrow_back"
             app:tint="@color/white" />
 
@@ -27,7 +30,7 @@
             android:id="@+id/tvVideoTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginHorizontal="12dp"
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
@@ -35,26 +38,66 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <!-- Speed Button -->
+        <!-- Speed Pill Button -->
         <Button
             android:id="@+id/btnSpeed"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:backgroundTint="@color/card_bg"
+            android:layout_height="38dp"
+            android:backgroundTint="#990F172A"
+            android:minWidth="60dp"
+            android:paddingHorizontal="12dp"
             android:text="1.0x"
             android:textColor="@color/accent"
-            android:textSize="13sp" />
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!-- Aspect Ratio Toggle (Fit / Fill) -->
+        <ImageButton
+            android:id="@+id/btnAspectFit"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_circle_button"
+            android:contentDescription="Toggle Fit or Fill"
+            android:padding="8dp"
+            android:src="@drawable/ic_fullscreen"
+            app:tint="@color/white" />
+
+        <!-- Orientation Toggle -->
+        <ImageButton
+            android:id="@+id/btnRotate"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_circle_button"
+            android:contentDescription="Rotate Screen"
+            android:padding="8dp"
+            android:src="@drawable/ic_screen_rotation"
+            app:tint="@color/white" />
+
+        <!-- Touch Lock Toggle -->
+        <ImageButton
+            android:id="@+id/btnTouchLock"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_circle_button"
+            android:contentDescription="Lock Controls"
+            android:padding="8dp"
+            android:src="@drawable/ic_lock_open"
+            app:tint="@color/white" />
 
         <!-- Bluetooth Headphones Button -->
         <ImageButton
             android:id="@+id/btnBluetooth"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginStart="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_circle_button"
+            android:contentDescription="Connect Bluetooth Headphones"
+            android:padding="8dp"
             android:src="@drawable/ic_bluetooth"
-            app:tint="@color/white"
-            android:contentDescription="Connect Bluetooth Headphones" />
+            app:tint="@color/white" />
     </LinearLayout>
 
     <!-- Center Play/Pause & Rewind/Forward -->
@@ -65,90 +108,74 @@
         android:gravity="center"
         android:orientation="horizontal">
 
-        <LinearLayout
-            android:layout_width="56dp"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageButton
-                android:id="@+id/exo_rew"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_media_rew"
-                app:tint="@color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="10s"
-                android:textColor="@color/white"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
         <ImageButton
-            android:id="@+id/exo_play_pause"
-            android:layout_width="68dp"
-            android:layout_height="68dp"
-            android:layout_marginHorizontal="28dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_media_play"
+            android:id="@+id/exo_rew"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_circle_button"
+            android:contentDescription="Rewind 10 seconds"
+            android:padding="13dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_replay_10"
             app:tint="@color/white" />
 
-        <LinearLayout
+        <ImageButton
+            android:id="@+id/btnPlayPause"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:layout_marginHorizontal="36dp"
+            android:background="@drawable/bg_circle_button"
+            android:contentDescription="Play or Pause"
+            android:padding="18dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_pause"
+            app:tint="@color/accent" />
+
+        <ImageButton
+            android:id="@+id/exo_ffwd"
             android:layout_width="56dp"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageButton
-                android:id="@+id/exo_ffwd"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_media_ff"
-                app:tint="@color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="10s"
-                android:textColor="@color/white"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+            android:layout_height="56dp"
+            android:background="@drawable/bg_circle_button"
+            android:contentDescription="Forward 10 seconds"
+            android:padding="13dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_forward_10"
+            app:tint="@color/white" />
     </LinearLayout>
 
-    <!-- Bottom Seek Bar & Duration -->
+    <!-- Bottom Interactive Seek Bar (Zero time numbers shown) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingBottom="6dp">
 
         <TextView
             android:id="@+id/exo_position"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/white"
-            android:textSize="12sp" />
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
         <androidx.media3.ui.DefaultTimeBar
             android:id="@+id/exo_progress"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="8dp"
-            android:layout_weight="1" />
+            app:bar_height="5dp"
+            app:buffered_color="#66FFFFFF"
+            app:played_color="@color/accent"
+            app:scrubber_color="@color/accent"
+            app:scrubber_dragged_size="22dp"
+            app:scrubber_enabled_size="16dp"
+            app:touch_target_height="38dp"
+            app:unplayed_color="#38FFFFFF" />
 
         <TextView
             android:id="@+id/exo_duration"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/white"
-            android:textSize="12sp" />
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
     </LinearLayout>
 
 </RelativeLayout>

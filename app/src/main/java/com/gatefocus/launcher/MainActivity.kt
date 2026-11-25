@@ -30,6 +30,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gatefocus.launcher.data.PdfItem
 import com.gatefocus.launcher.data.StudyProgressManager
+import com.gatefocus.launcher.data.TitleFormatter
 import com.gatefocus.launcher.data.VideoItem
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -75,6 +76,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etSearch: EditText
     private lateinit var chipGroupSubjects: ChipGroup
     private lateinit var scrollSubjects: HorizontalScrollView
+    private lateinit var chipHideDone: Chip
+    private lateinit var cardUpNext: MaterialCardView
+    private lateinit var tvUpNextLabel: TextView
+    private lateinit var tvUpNextTitle: TextView
+    private lateinit var btnUpNextPlay: MaterialButton
 
     private var selectedDurationMinutes = 45
     private var sessionTimer: CountDownTimer? = null
@@ -88,6 +94,8 @@ class MainActivity : AppCompatActivity() {
 
     private var selectedSubject: String = "All"
     private var searchQuery: String = ""
+    private var hideCompleted: Boolean = false
+    private var upNextVideo: VideoItem? = null
 
     private val roleRequestLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -134,6 +142,25 @@ class MainActivity : AppCompatActivity() {
         etSearch = findViewById(R.id.etSearch)
         chipGroupSubjects = findViewById(R.id.chipGroupSubjects)
         scrollSubjects = findViewById(R.id.scrollSubjects)
+        chipHideDone = findViewById(R.id.chipHideDone)
+        cardUpNext = findViewById(R.id.cardUpNext)
+        tvUpNextLabel = findViewById(R.id.tvUpNextLabel)
+        tvUpNextTitle = findViewById(R.id.tvUpNextTitle)
+        btnUpNextPlay = findViewById(R.id.btnUpNextPlay)
+
+        hideCompleted = progressManager.getHideCompleted()
+        chipHideDone.isChecked = hideCompleted
+        chipHideDone.setOnCheckedChangeListener { _, isChecked ->
+            hideCompleted = isChecked
+            progressManager.setHideCompleted(isChecked)
+            applyFilter()
+        }
+
+        val launchUpNext = {
+            upNextVideo?.let { openVideoLecture(it) }
+        }
+        cardUpNext.setOnClickListener { launchUpNext() }
+        btnUpNextPlay.setOnClickListener { launchUpNext() }
 
         setupDurationPresets()
 
@@ -141,9 +168,11 @@ class MainActivity : AppCompatActivity() {
         rvVideos.layoutManager = if (isLandscape) GridLayoutManager(this, 2) else LinearLayoutManager(this)
         rvPdfs.layoutManager = if (isLandscape) GridLayoutManager(this, 2) else LinearLayoutManager(this)
 
-        rvVideos.adapter = VideoAdapter(videoList) { selectedVideo ->
-            VideoPlayerActivity.start(this, selectedVideo.file.absolutePath, selectedVideo.title)
-        }
+        rvVideos.adapter = VideoAdapter(
+            videos = videoList,
+            onVideoClick = { selectedVideo -> openVideoLecture(selectedVideo) },
+            onVideoLongClick = { selectedVideo -> showVideoCompletionDialog(selectedVideo) }
+        )
         rvPdfs.adapter = PdfAdapter(pdfList) { selectedPdf ->
             PdfViewerActivity.start(this, selectedPdf.file.absolutePath, selectedPdf.title)
         }
@@ -159,11 +188,13 @@ class MainActivity : AppCompatActivity() {
                     0 -> {
                         rvVideos.visibility = View.VISIBLE
                         rvPdfs.visibility = View.GONE
+                        updateUpNextVisibility()
                         checkEmptyState(videoList.isEmpty())
                     }
                     1 -> {
                         rvVideos.visibility = View.GONE
                         rvPdfs.visibility = View.VISIBLE
+                        cardUpNext.visibility = View.GONE
                         checkEmptyState(pdfList.isEmpty())
                     }
                 }
@@ -667,8 +698,13 @@ class MainActivity : AppCompatActivity() {
         layoutEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
         if (isEmpty) {
             tvEmptyMessage.text = if (tabLayout.selectedTabPosition == 0) {
-                if (searchQuery.isNotEmpty() || selectedSubject != "All") "No matching lectures found"
-                else "No video lectures found in /GATE/"
+                when {
+                    hideCompleted && allVideos.isNotEmpty() && searchQuery.isEmpty() ->
+                        "All lectures completed in this view!"
+                    searchQuery.isNotEmpty() || selectedSubject != "All" ->
+                        "No matching lectures found"
+                    else -> "No video lectures found in /GATE/"
+                }
             } else {
                 if (searchQuery.isNotEmpty() || selectedSubject != "All") "No matching workbooks found"
                 else "No PDF workbooks found in /GATE/"
@@ -678,10 +714,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateStudyStats() {
         tvStatsTimeToday.text = progressManager.getTodayStudyFormatted()
-        val completedCount = allVideos.count { it.isCompleted }
-        val totalCount = allVideos.size
-        val percent = if (totalCount > 0) ((completedCount * 100) / totalCount) else 0
-        tvStatsCompleted.text = "$completedCount / $totalCount ($percent%)"
+        val scopeVideos = if (selectedSubject == "All") {
+            allVideos
+        } else {
+            allVideos.filter { it.playlistName.equals(selectedSubject, ignoreCase = true) }
+        }
+        val completedCount = scopeVideos.count { it.isCompleted }
+        val totalCount = scopeVideos.size
+        tvStatsCompleted.text = if (selectedSubject == "All") {
+            "$completedCount Done"
+        } else {
+            "$completedCount / $totalCount"
+        }
         val streak = progressManager.getStudyStreak()
         tvStatsStreak.text = "$streak ${if (streak == 1) "Day" else "Days"}"
     }
@@ -747,13 +791,83 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun openVideoLecture(video: VideoItem) {
+        progressManager.saveLastPlayedVideo(video.file.absolutePath)
+        val sameSubjectVideos = allVideos.filter {
+            it.playlistName.equals(video.playlistName, ignoreCase = true)
+        }.ifEmpty { listOf(video) }
+        val startIndex = sameSubjectVideos.indexOfFirst {
+            it.file.absolutePath == video.file.absolutePath
+        }.coerceAtLeast(0)
+        val paths = ArrayList(sameSubjectVideos.map { it.file.absolutePath })
+        val titles = ArrayList(sameSubjectVideos.map { TitleFormatter.cleanLectureTitle(it.title) })
+        VideoPlayerActivity.startPlaylist(
+            context = this,
+            paths = paths,
+            titles = titles,
+            startIndex = startIndex
+        )
+    }
+
+    private fun showVideoCompletionDialog(video: VideoItem) {
+        val cleanTitle = TitleFormatter.cleanLectureTitle(video.title)
+        val actionText = if (video.isCompleted) "Mark as Incomplete" else "Mark as Completed"
+        AlertDialog.Builder(this)
+            .setTitle(cleanTitle)
+            .setMessage("Change completion status for this lecture?")
+            .setPositiveButton(actionText) { _, _ ->
+                val newDone = !video.isCompleted
+                progressManager.setVideoCompleted(video.file.absolutePath, newDone)
+                video.isCompleted = newDone
+                if (!newDone) {
+                    video.progressMs = progressManager.getVideoProgress(video.file.absolutePath)
+                }
+                applyFilter()
+                updateStudyStats()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun updateUpNextCard(subjectVideos: List<VideoItem>) {
+        val lastPath = progressManager.getLastPlayedVideo()
+        val lastPlayedMatch = if (!lastPath.isNullOrEmpty()) {
+            subjectVideos.firstOrNull { it.file.absolutePath == lastPath && !it.isCompleted }
+        } else null
+
+        val inProgressFallback = subjectVideos.firstOrNull { it.progressMs > 0 && !it.isCompleted }
+        val firstUnwatched = subjectVideos.firstOrNull { !it.isCompleted }
+
+        upNextVideo = lastPlayedMatch ?: inProgressFallback ?: firstUnwatched
+        updateUpNextVisibility()
+    }
+
+    private fun updateUpNextVisibility() {
+        val candidate = upNextVideo
+        if (tabLayout.selectedTabPosition == 0 && candidate != null && searchQuery.isBlank()) {
+            val isResuming = candidate.progressMs > 0
+            tvUpNextLabel.text = if (isResuming) "CONTINUE • ${candidate.playlistName}" else "UP NEXT • ${candidate.playlistName}"
+            tvUpNextTitle.text = TitleFormatter.cleanLectureTitle(candidate.title)
+            btnUpNextPlay.text = if (isResuming) "Resume" else "Start"
+            cardUpNext.visibility = View.VISIBLE
+        } else {
+            cardUpNext.visibility = View.GONE
+        }
+    }
+
     private fun applyFilter() {
         val q = searchQuery.trim().lowercase()
 
-        val filteredVideos = allVideos.filter { video ->
-            val matchesSubject = (selectedSubject == "All" || video.playlistName.equals(selectedSubject, ignoreCase = true))
-            val matchesQuery = q.isEmpty() || video.title.lowercase().contains(q) || video.playlistName.lowercase().contains(q)
-            matchesSubject && matchesQuery
+        val subjectVideos = allVideos.filter { video ->
+            selectedSubject == "All" || video.playlistName.equals(selectedSubject, ignoreCase = true)
+        }
+
+        val filteredVideos = subjectVideos.filter { video ->
+            val matchesHideDone = !hideCompleted || !video.isCompleted
+            val cleanTitle = TitleFormatter.cleanLectureTitle(video.title).lowercase()
+            val matchesQuery = q.isEmpty() || cleanTitle.contains(q) ||
+                video.title.lowercase().contains(q) || video.playlistName.lowercase().contains(q)
+            matchesHideDone && matchesQuery
         }
 
         val filteredPdfs = allPdfs.filter { pdf ->
@@ -774,6 +888,9 @@ class MainActivity : AppCompatActivity() {
         val pdfTab = tabLayout.getTabAt(1)
         videoTab?.text = "Video Lectures (${filteredVideos.size})"
         pdfTab?.text = "PDF Workbooks (${filteredPdfs.size})"
+
+        updateUpNextCard(subjectVideos)
+        updateStudyStats()
 
         if (tabLayout.selectedTabPosition == 0) {
             checkEmptyState(videoList.isEmpty())
