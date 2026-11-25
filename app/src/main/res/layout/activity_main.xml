@@ -1,793 +1,750 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:paddingHorizontal="14dp"
+    android:paddingTop="10dp">
 
-    <!-- Top App Bar / Header -->
+    <!-- Pinned Minimal Top App Bar -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="44dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:fontFamily="sans-serif-black"
+            android:letterSpacing="0.01"
             android:text="GateFocus"
             android:textColor="@color/accent"
-            android:textSize="26sp"
+            android:textSize="21sp" />
+
+        <TextView
+            android:id="@+id/tvAdminBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_pill_badge"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="3dp"
+            android:text="STANDBY"
+            android:textColor="@color/accent_green"
+            android:textSize="10sp"
             android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSwitchHome"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:backgroundTint="@color/card_bg"
-            android:text="Samsung Home"
-            android:textColor="@color/text_primary"
-            android:textSize="12sp"
-            app:cornerRadius="8dp"
-            app:icon="@drawable/ic_home"
-            app:iconPadding="6dp"
-            app:iconSize="16dp"
-            app:iconTint="@color/text_primary"
-            app:strokeColor="@color/card_border"
-            app:strokeWidth="1dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnHomeSettings"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="8dp"
-            android:backgroundTint="@color/card_bg"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            android:padding="0dp"
-            app:cornerRadius="8dp"
-            app:icon="@drawable/ic_settings"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="18dp"
-            app:iconTint="@color/text_secondary"
-            app:strokeColor="@color/card_border"
-            app:strokeWidth="1dp" />
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnMainBluetooth"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="8dp"
-            android:backgroundTint="@color/card_bg"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:backgroundTint="#141D2E"
+            android:contentDescription="Bluetooth Headphones"
             android:insetLeft="0dp"
             android:insetTop="0dp"
             android:insetRight="0dp"
             android:insetBottom="0dp"
             android:padding="0dp"
-            app:cornerRadius="8dp"
+            app:cornerRadius="18dp"
             app:icon="@drawable/ic_bluetooth"
             app:iconGravity="textStart"
             app:iconPadding="0dp"
             app:iconSize="18dp"
             app:iconTint="@color/text_secondary"
-            app:strokeColor="@color/card_border"
-            app:strokeWidth="1dp" />
+            app:strokeWidth="0dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnHomeSettings"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:backgroundTint="#141D2E"
+            android:contentDescription="Launcher Settings"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:padding="0dp"
+            app:cornerRadius="18dp"
+            app:icon="@drawable/ic_settings"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="18dp"
+            app:iconTint="@color/text_secondary"
+            app:strokeWidth="0dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRefresh"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:backgroundTint="#141D2E"
+            android:contentDescription="Rescan Files"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:padding="0dp"
+            app:cornerRadius="18dp"
+            app:icon="@drawable/ic_refresh"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="18dp"
+            app:iconTint="@color/text_secondary"
+            app:strokeWidth="0dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSwitchHome"
+            style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:layout_marginStart="8dp"
-            android:backgroundTint="@color/card_bg"
-            android:text="Scan"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:backgroundTint="#141D2E"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="12dp"
+            android:text="Home"
             android:textColor="@color/text_primary"
             android:textSize="12sp"
-            app:cornerRadius="8dp"
-            app:icon="@drawable/ic_refresh"
-            app:iconPadding="6dp"
-            app:iconSize="16dp"
+            app:cornerRadius="18dp"
+            app:icon="@drawable/ic_home"
+            app:iconPadding="5dp"
+            app:iconSize="15dp"
             app:iconTint="@color/text_primary"
-            app:strokeColor="@color/card_border"
-            app:strokeWidth="1dp" />
+            app:strokeWidth="0dp" />
     </LinearLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:text="Dedicated GATE Study Hub and Distraction Blocker"
-        android:textColor="@color/text_secondary"
-        android:textSize="13sp" />
-
-    <!-- Tamper Protection and Focus Timer Card -->
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:backgroundTint="@color/card_bg"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="2dp"
-        app:strokeColor="@color/card_border"
-        app:strokeWidth="1dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <!-- Card Header -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:id="@+id/ivShieldIcon"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_marginEnd="8dp"
-                    android:src="@drawable/ic_shield" />
-
-                <TextView
-                    android:id="@+id/tvProtectionStatus"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Focus Shield"
-                    android:textColor="@color/accent_green"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvAdminBadge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="#2210B981"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
-                    android:text="STANDBY"
-                    android:textColor="@color/accent_green"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Live Countdown / Status Display -->
-            <TextView
-                android:id="@+id/tvTimerDisplay"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:gravity="center"
-                android:text="Idle: Select a Focus Block"
-                android:textColor="@color/text_primary"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvTimerSubtext"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center"
-                android:text="During Focus Lock, distractions and settings are strictly blocked."
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
-
-            <!-- Duration Selector -->
-            <HorizontalScrollView
-                android:id="@+id/scrollDurationPresets"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:overScrollMode="never"
-                android:scrollbars="none">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnDuration15"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:backgroundTint="@color/primary_dark"
-                        android:text="15m"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        app:cornerRadius="18dp"
-                        app:strokeColor="@color/card_border"
-                        app:strokeWidth="1dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnDuration25"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:layout_marginStart="8dp"
-                        android:backgroundTint="@color/primary_dark"
-                        android:text="25m (Pomodoro)"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        app:cornerRadius="18dp"
-                        app:strokeColor="@color/card_border"
-                        app:strokeWidth="1dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnDuration45"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:layout_marginStart="8dp"
-                        android:backgroundTint="@color/accent"
-                        android:text="45m (Lecture)"
-                        android:textColor="@color/white"
-                        android:textSize="12sp"
-                        app:cornerRadius="18dp"
-                        app:strokeColor="@color/accent"
-                        app:strokeWidth="1dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnDuration60"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:layout_marginStart="8dp"
-                        android:backgroundTint="@color/primary_dark"
-                        android:text="60m (1h)"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        app:cornerRadius="18dp"
-                        app:strokeColor="@color/card_border"
-                        app:strokeWidth="1dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnDuration90"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:layout_marginStart="8dp"
-                        android:backgroundTint="@color/primary_dark"
-                        android:text="90m (Deep)"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        app:cornerRadius="18dp"
-                        app:strokeColor="@color/card_border"
-                        app:strokeWidth="1dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnDuration120"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:layout_marginStart="8dp"
-                        android:backgroundTint="@color/primary_dark"
-                        android:text="120m (2h)"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        app:cornerRadius="18dp"
-                        app:strokeColor="@color/card_border"
-                        app:strokeWidth="1dp" />
-                </LinearLayout>
-            </HorizontalScrollView>
-
-            <!-- Control Buttons Row -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnKioskToggle"
-                    android:layout_width="0dp"
-                    android:layout_height="44dp"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/primary_dark"
-                    android:text="Start Focus (45m)"
-                    android:textColor="@color/accent_green"
-                    android:textSize="13sp"
-                    app:cornerRadius="8dp"
-                    app:icon="@drawable/ic_lock"
-                    app:iconPadding="8dp"
-                    app:iconSize="18dp"
-                    app:iconTint="@color/accent_green"
-                    app:strokeColor="@color/accent_green"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnAllowedApps"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:layout_marginStart="10dp"
-                    android:backgroundTint="@color/primary_dark"
-                    android:text="Allowed Apps"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp"
-                    app:cornerRadius="8dp"
-                    app:icon="@drawable/ic_apps"
-                    app:iconPadding="8dp"
-                    app:iconSize="18dp"
-                    app:iconTint="@color/text_primary"
-                    app:strokeColor="@color/card_border"
-                    app:strokeWidth="1dp" />
-            </LinearLayout>
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Session Finished Celebration Card -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/layoutSessionComplete"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:backgroundTint="#162E20"
-        android:visibility="gone"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="2dp"
-        app:strokeColor="@color/accent_green"
-        app:strokeWidth="1dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="14dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_marginEnd="8dp"
-                    android:src="@drawable/ic_check_circle" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Focus Session Completed"
-                    android:textColor="@color/accent_green"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Great focus! You can take a break or switch back to Samsung Home."
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:orientation="horizontal">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnCompleteSwitchHome"
-                    android:layout_width="0dp"
-                    android:layout_height="38dp"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/accent_green"
-                    android:text="Switch to Samsung Home"
-                    android:textColor="@color/white"
-                    android:textSize="12sp"
-                    app:cornerRadius="8dp"
-                    app:icon="@drawable/ic_home"
-                    app:iconPadding="6dp"
-                    app:iconSize="16dp"
-                    app:iconTint="@color/white" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnCompleteDismiss"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:layout_marginStart="8dp"
-                    android:backgroundTint="@color/card_bg"
-                    android:text="Dismiss"
-                    android:textColor="@color/text_primary"
-                    android:textSize="12sp"
-                    app:cornerRadius="8dp"
-                    app:strokeColor="@color/card_border"
-                    app:strokeWidth="1dp" />
-            </LinearLayout>
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Study Stats & Daily Streak Card -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardStudyStats"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:backgroundTint="@color/card_bg"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="2dp"
-        app:strokeColor="@color/card_border"
-        app:strokeWidth="1dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="10dp">
-
-            <!-- Today's Study Time -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:layout_marginEnd="4dp"
-                        android:src="@drawable/ic_timer" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="TODAY'S STUDY"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="10sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/tvStatsTimeToday"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="0m"
-                    android:textColor="@color/accent"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="1dp"
-                android:layout_height="24dp"
-                android:layout_marginHorizontal="6dp"
-                android:background="@color/card_border" />
-
-            <!-- Completed Lectures -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:layout_marginEnd="4dp"
-                        android:src="@drawable/ic_school" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="COMPLETED"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="10sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/tvStatsCompleted"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="0 / 0"
-                    android:textColor="@color/accent_green"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="1dp"
-                android:layout_height="24dp"
-                android:layout_marginHorizontal="6dp"
-                android:background="@color/card_border" />
-
-            <!-- Daily Streak -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:layout_marginEnd="4dp"
-                        android:src="@drawable/ic_fire" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="STUDY STREAK"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="10sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/tvStatsStreak"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="1 Day"
-                    android:textColor="#F59E0B"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Tab Bar -->
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tabLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:background="@color/card_bg"
-        app:tabIndicatorColor="@color/accent"
-        app:tabSelectedTextColor="@color/accent"
-        app:tabTextColor="@color/text_secondary">
-
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:icon="@drawable/ic_video"
-            android:text="Video Lectures" />
-
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:icon="@drawable/ic_pdf"
-            android:text="PDF Workbooks" />
-    </com.google.android.material.tabs.TabLayout>
-
-    <!-- Search Bar -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/bg_search_input"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="2dp">
-
-        <ImageView
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:src="@drawable/ic_search" />
-
-        <EditText
-            android:id="@+id/etSearch"
-            android:layout_width="match_parent"
-            android:layout_height="36dp"
-            android:layout_marginStart="8dp"
-            android:background="@null"
-            android:hint="Search lectures and workbooks..."
-            android:imeOptions="actionSearch"
-            android:inputType="text"
-            android:maxLines="1"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_secondary"
-            android:textSize="13sp" />
-    </LinearLayout>
-
-    <!-- Subject Filter Chips + Hide Done Toggle -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <HorizontalScrollView
-            android:id="@+id/scrollSubjects"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:overScrollMode="never"
-            android:scrollbars="none">
-
-            <com.google.android.material.chip.ChipGroup
-                android:id="@+id/chipGroupSubjects"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:singleLine="true"
-                app:singleSelection="true">
-            </com.google.android.material.chip.ChipGroup>
-        </HorizontalScrollView>
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chipHideDone"
-            style="@style/Widget.Material3.Chip.Filter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:checkable="true"
-            android:text="Hide Done"
-            android:textColor="@color/text_primary"
-            android:textSize="11sp"
-            app:checkedIconTint="@color/accent"
-            app:chipBackgroundColor="@color/card_bg"
-            app:chipStrokeColor="@color/card_border"
-            app:chipStrokeWidth="1dp" />
-    </LinearLayout>
-
-    <!-- Up Next / Continue Single-Tap Card -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardUpNext"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:backgroundTint="#132336"
-        android:visibility="gone"
-        app:cardCornerRadius="10dp"
-        app:cardElevation="2dp"
-        app:strokeColor="@color/accent"
-        app:strokeWidth="1dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="8dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tvUpNextLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="UP NEXT"
-                    android:textColor="@color/accent"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvUpNextTitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="Lecture Title"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnUpNextPlay"
-                android:layout_width="wrap_content"
-                android:layout_height="34dp"
-                android:layout_marginStart="8dp"
-                android:backgroundTint="@color/accent"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:paddingHorizontal="12dp"
-                android:text="Resume"
-                android:textColor="@color/primary_dark"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                app:cornerRadius="8dp"
-                app:icon="@drawable/ic_play"
-                app:iconPadding="4dp"
-                app:iconSize="16dp"
-                app:iconTint="@color/primary_dark" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Storage Path Info -->
-    <TextView
-        android:id="@+id/tvStoragePath"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Storage: /storage/emulated/0/GATE/"
-        android:textColor="@color/text_secondary"
-        android:textSize="11sp" />
-
-    <!-- Frame for Content Views -->
-    <FrameLayout
+    <!-- Scrollable Header + Maximum Real-Estate Study Feed -->
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="6dp"
         android:layout_weight="1">
 
-        <!-- Empty State View -->
-        <LinearLayout
-            android:id="@+id/layoutEmptyState"
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/appBarLayout"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:visibility="gone">
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            app:elevation="0dp"
+            app:liftOnScroll="false">
 
-            <ImageView
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:src="@drawable/ic_folder_open" />
-
-            <TextView
-                android:id="@+id/tvEmptyMessage"
-                android:layout_width="wrap_content"
+            <!-- Collapsible Focus Strip + Up Next Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="No study materials found"
-                android:textColor="@color/text_secondary"
-                android:textSize="15sp" />
+                android:orientation="vertical"
+                app:layout_scrollFlags="scroll|enterAlways">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Copy downloaded GATE videos/workbooks to GATE/ folder"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
-        </LinearLayout>
+                <!-- Session Finished Celebration Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/layoutSessionComplete"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:backgroundTint="#122B20"
+                    android:visibility="gone"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
 
-        <!-- Video Lectures RecyclerView -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvVideos"
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:layout_marginEnd="8dp"
+                                android:src="@drawable/ic_check_circle"
+                                app:tint="@color/accent_green" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Focus Session Completed! Great work."
+                                android:textColor="@color/accent_green"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnCompleteSwitchHome"
+                                style="@style/Widget.Material3.Button.TonalButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="32dp"
+                                android:backgroundTint="@color/accent_green"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:paddingHorizontal="10dp"
+                                android:text="Home"
+                                android:textColor="@color/white"
+                                android:textSize="11sp"
+                                app:cornerRadius="16dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnCompleteDismiss"
+                                style="@style/Widget.Material3.Button.TextButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="32dp"
+                                android:layout_marginStart="4dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:minWidth="0dp"
+                                android:paddingHorizontal="8dp"
+                                android:text="Dismiss"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Unified Compact Focus + Study Stats Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardStudyStats"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:backgroundTint="#141D2E"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="10dp">
+
+                        <!-- Always-Visible Compact Row -->
+                        <LinearLayout
+                            android:id="@+id/layoutFocusHeader"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:id="@+id/ivShieldIcon"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_marginEnd="10dp"
+                                android:src="@drawable/ic_shield" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tvTimerDisplay"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Focus: 45 min"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold" />
+
+                                <!-- Inline Quiet Study Micro-Stats -->
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <TextView
+                                        android:id="@+id/tvStatsTimeToday"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="0m"
+                                        android:textColor="@color/accent"
+                                        android:textSize="11sp"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text=" today  •  "
+                                        android:textColor="@color/text_secondary"
+                                        android:textSize="11sp" />
+
+                                    <TextView
+                                        android:id="@+id/tvStatsCompleted"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="0 Done"
+                                        android:textColor="@color/accent_green"
+                                        android:textSize="11sp"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="  •  "
+                                        android:textColor="@color/text_secondary"
+                                        android:textSize="11sp" />
+
+                                    <TextView
+                                        android:id="@+id/tvStatsStreak"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="1 Day"
+                                        android:textColor="#F59E0B"
+                                        android:textSize="11sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <ImageView
+                                android:id="@+id/ivExpandFocus"
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:layout_marginEnd="6dp"
+                                android:padding="4dp"
+                                android:src="@drawable/ic_expand_more"
+                                app:tint="@color/text_secondary" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnKioskToggle"
+                                style="@style/Widget.Material3.Button.TonalButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="34dp"
+                                android:backgroundTint="#163026"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:minWidth="0dp"
+                                android:paddingHorizontal="12dp"
+                                android:text="Start 45m"
+                                android:textColor="@color/accent_green"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                app:cornerRadius="17dp"
+                                app:icon="@drawable/ic_lock"
+                                app:iconPadding="5dp"
+                                app:iconSize="14dp"
+                                app:iconTint="@color/accent_green"
+                                app:strokeWidth="0dp" />
+                        </LinearLayout>
+
+                        <!-- Expandable Presets & Allowed Apps Drawer (Collapsed by default when Ready) -->
+                        <LinearLayout
+                            android:id="@+id/layoutFocusDetails"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:id="@+id/tvProtectionStatus"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Focus Shield: Device Owner Active"
+                                android:textColor="@color/accent_green"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvTimerSubtext"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Select study duration and lock distractions."
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp" />
+
+                            <HorizontalScrollView
+                                android:id="@+id/scrollDurationPresets"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:overScrollMode="never"
+                                android:scrollbars="none">
+
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal">
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnDuration15"
+                                        style="@style/Widget.Material3.Button.TonalButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="32dp"
+                                        android:backgroundTint="#0F172A"
+                                        android:insetTop="0dp"
+                                        android:insetBottom="0dp"
+                                        android:minWidth="0dp"
+                                        android:paddingHorizontal="12dp"
+                                        android:text="15m"
+                                        android:textColor="@color/text_primary"
+                                        android:textSize="11sp"
+                                        app:cornerRadius="16dp" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnDuration25"
+                                        style="@style/Widget.Material3.Button.TonalButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="32dp"
+                                        android:layout_marginStart="6dp"
+                                        android:backgroundTint="#0F172A"
+                                        android:insetTop="0dp"
+                                        android:insetBottom="0dp"
+                                        android:minWidth="0dp"
+                                        android:paddingHorizontal="12dp"
+                                        android:text="25m"
+                                        android:textColor="@color/text_primary"
+                                        android:textSize="11sp"
+                                        app:cornerRadius="16dp" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnDuration45"
+                                        style="@style/Widget.Material3.Button.TonalButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="32dp"
+                                        android:layout_marginStart="6dp"
+                                        android:backgroundTint="@color/accent"
+                                        android:insetTop="0dp"
+                                        android:insetBottom="0dp"
+                                        android:minWidth="0dp"
+                                        android:paddingHorizontal="12dp"
+                                        android:text="45m"
+                                        android:textColor="@color/primary_dark"
+                                        android:textSize="11sp"
+                                        android:textStyle="bold"
+                                        app:cornerRadius="16dp" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnDuration60"
+                                        style="@style/Widget.Material3.Button.TonalButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="32dp"
+                                        android:layout_marginStart="6dp"
+                                        android:backgroundTint="#0F172A"
+                                        android:insetTop="0dp"
+                                        android:insetBottom="0dp"
+                                        android:minWidth="0dp"
+                                        android:paddingHorizontal="12dp"
+                                        android:text="60m"
+                                        android:textColor="@color/text_primary"
+                                        android:textSize="11sp"
+                                        app:cornerRadius="16dp" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnDuration90"
+                                        style="@style/Widget.Material3.Button.TonalButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="32dp"
+                                        android:layout_marginStart="6dp"
+                                        android:backgroundTint="#0F172A"
+                                        android:insetTop="0dp"
+                                        android:insetBottom="0dp"
+                                        android:minWidth="0dp"
+                                        android:paddingHorizontal="12dp"
+                                        android:text="90m"
+                                        android:textColor="@color/text_primary"
+                                        android:textSize="11sp"
+                                        app:cornerRadius="16dp" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnDuration120"
+                                        style="@style/Widget.Material3.Button.TonalButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="32dp"
+                                        android:layout_marginStart="6dp"
+                                        android:backgroundTint="#0F172A"
+                                        android:insetTop="0dp"
+                                        android:insetBottom="0dp"
+                                        android:minWidth="0dp"
+                                        android:paddingHorizontal="12dp"
+                                        android:text="120m"
+                                        android:textColor="@color/text_primary"
+                                        android:textSize="11sp"
+                                        app:cornerRadius="16dp" />
+                                </LinearLayout>
+                            </HorizontalScrollView>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnAllowedApps"
+                                style="@style/Widget.Material3.Button.TonalButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="32dp"
+                                android:layout_marginTop="8dp"
+                                android:backgroundTint="#0F172A"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:paddingHorizontal="12dp"
+                                android:text="Allowed Apps"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp"
+                                app:cornerRadius="16dp"
+                                app:icon="@drawable/ic_apps"
+                                app:iconPadding="5dp"
+                                app:iconSize="14dp"
+                                app:iconTint="@color/text_secondary" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Up Next / Continue Single-Tap Pill Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardUpNext"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:backgroundTint="#132338"
+                    android:visibility="gone"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="8dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvUpNextLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="UP NEXT"
+                                android:textColor="@color/accent"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvUpNextTitle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:text="Lecture Title"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnUpNextPlay"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginStart="8dp"
+                            android:backgroundTint="@color/accent"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:paddingHorizontal="14dp"
+                            android:text="Resume"
+                            android:textColor="@color/primary_dark"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="17dp"
+                            app:icon="@drawable/ic_play"
+                            app:iconPadding="4dp"
+                            app:iconSize="15dp"
+                            app:iconTint="@color/primary_dark" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Segmented Pill Tab Bar + Compact Search & Filter Row -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="#141D2E"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
+
+                    <com.google.android.material.tabs.TabLayout
+                        android:id="@+id/tabLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="38dp"
+                        android:background="@android:color/transparent"
+                        app:tabIndicatorColor="@color/accent"
+                        app:tabIndicatorFullWidth="true"
+                        app:tabIndicatorHeight="3dp"
+                        app:tabSelectedTextColor="@color/accent"
+                        app:tabTextColor="@color/text_secondary">
+
+                        <com.google.android.material.tabs.TabItem
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:icon="@drawable/ic_video"
+                            android:text="Video Lectures" />
+
+                        <com.google.android.material.tabs.TabItem
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:icon="@drawable/ic_pdf"
+                            android:text="PDF Workbooks" />
+                    </com.google.android.material.tabs.TabLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Search Bar + Hide Done Inline Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_search_input"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_search"
+                            app:tint="@color/text_secondary" />
+
+                        <EditText
+                            android:id="@+id/etSearch"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginStart="8dp"
+                            android:background="@null"
+                            android:hint="Search lectures &amp; workbooks..."
+                            android:imeOptions="actionSearch"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipHideDone"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:checkable="true"
+                        android:text="Hide Done"
+                        android:textColor="@color/text_primary"
+                        android:textSize="11sp"
+                        app:checkedIconTint="@color/accent"
+                        app:chipBackgroundColor="#141D2E"
+                        app:chipCornerRadius="18dp"
+                        app:chipStrokeWidth="0dp" />
+                </LinearLayout>
+
+                <!-- Subject Filter Chips -->
+                <HorizontalScrollView
+                    android:id="@+id/scrollSubjects"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="4dp"
+                    android:overScrollMode="never"
+                    android:scrollbars="none">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chipGroupSubjects"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:singleLine="true"
+                        app:singleSelection="true">
+                    </com.google.android.material.chip.ChipGroup>
+                </HorizontalScrollView>
+            </LinearLayout>
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <!-- Study Feed Area (Takes All Remaining Screen Space & Expands on Scroll) -->
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingBottom="16dp" />
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <!-- PDF Workbooks RecyclerView -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvPdfs"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingBottom="16dp"
-            android:visibility="gone" />
+            <LinearLayout
+                android:id="@+id/layoutEmptyState"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="gone">
 
-    </FrameLayout>
+                <ImageView
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:alpha="0.6"
+                    android:src="@drawable/ic_folder_open"
+                    app:tint="@color/text_secondary" />
+
+                <TextView
+                    android:id="@+id/tvEmptyMessage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="No study materials found"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Place subject folders inside /sdcard/GATE/"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvVideos"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingTop="4dp"
+                android:paddingBottom="24dp"
+                android:scrollbars="vertical" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvPdfs"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingTop="4dp"
+                android:paddingBottom="24dp"
+                android:scrollbars="vertical"
+                android:visibility="gone" />
+        </FrameLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
 </LinearLayout>

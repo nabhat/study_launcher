@@ -11,7 +11,9 @@ import android.os.Environment
 import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
+import android.transition.TransitionManager
 import android.view.View
+import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
@@ -67,7 +69,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnCompleteDismiss: MaterialButton
 
     // Study Stats & Dashboard
-    private lateinit var cardStudyStats: MaterialCardView
+    private var cardStudyStats: View? = null
+    private var rootContainer: ViewGroup? = null
+    private var layoutFocusHeader: View? = null
+    private var layoutFocusDetails: View? = null
+    private var ivExpandFocus: ImageView? = null
+    private var isFocusPanelExpanded = false
     private lateinit var tvStatsTimeToday: TextView
     private lateinit var tvStatsCompleted: TextView
     private lateinit var tvStatsStreak: TextView
@@ -133,10 +140,19 @@ class MainActivity : AppCompatActivity() {
         btnCompleteDismiss = findViewById(R.id.btnCompleteDismiss)
 
         // Stats dashboard views
+        rootContainer = findViewById(R.id.rootContainer)
         cardStudyStats = findViewById(R.id.cardStudyStats)
+        layoutFocusHeader = findViewById(R.id.layoutFocusHeader)
+        layoutFocusDetails = findViewById(R.id.layoutFocusDetails)
+        ivExpandFocus = findViewById(R.id.ivExpandFocus)
         tvStatsTimeToday = findViewById(R.id.tvStatsTimeToday)
         tvStatsCompleted = findViewById(R.id.tvStatsCompleted)
         tvStatsStreak = findViewById(R.id.tvStatsStreak)
+
+        layoutFocusHeader?.setOnClickListener {
+            isFocusPanelExpanded = !isFocusPanelExpanded
+            applyFocusDrawerState(animate = true)
+        }
 
         // Subject & search views
         etSearch = findViewById(R.id.etSearch)
@@ -321,21 +337,28 @@ class MainActivity : AppCompatActivity() {
         highlightSelectedPreset(initialBtn)
     }
 
+    private fun applyFocusDrawerState(animate: Boolean) {
+        val details = layoutFocusDetails ?: return
+        if (animate) {
+            rootContainer?.let { TransitionManager.beginDelayedTransition(it) }
+        }
+        details.visibility = if (isFocusPanelExpanded) View.VISIBLE else View.GONE
+        ivExpandFocus?.animate()?.rotation(if (isFocusPanelExpanded) 180f else 0f)?.setDuration(180)?.start()
+    }
+
     private fun highlightSelectedPreset(selectedBtn: MaterialButton) {
-        val primaryDarkColor = ContextCompat.getColor(this, R.color.primary_dark)
+        val inactiveColor = ContextCompat.getColor(this, R.color.primary_dark)
         val accentColor = ContextCompat.getColor(this, R.color.accent)
-        val textPrimaryColor = ContextCompat.getColor(this, R.color.text_primary)
-        val whiteColor = ContextCompat.getColor(this, R.color.white)
+        val textSecondaryColor = ContextCompat.getColor(this, R.color.text_secondary)
 
         for (btn in durationButtons) {
+            btn.strokeWidth = 0
             if (btn.id == selectedBtn.id) {
                 btn.setBackgroundColor(accentColor)
-                btn.setTextColor(whiteColor)
-                btn.strokeColor = ContextCompat.getColorStateList(this, R.color.accent)
+                btn.setTextColor(inactiveColor)
             } else {
-                btn.setBackgroundColor(primaryDarkColor)
-                btn.setTextColor(textPrimaryColor)
-                btn.strokeColor = ContextCompat.getColorStateList(this, R.color.card_border)
+                btn.setBackgroundColor(inactiveColor)
+                btn.setTextColor(textSecondaryColor)
             }
         }
     }
@@ -355,15 +378,15 @@ class MainActivity : AppCompatActivity() {
             scrollDurationPresets.visibility = View.GONE
             tvTimerSubtext.text = "Focus session active. Distractions & launcher switching are locked."
             btnKioskToggle.isEnabled = false
-            btnKioskToggle.alpha = 0.5f
-            btnKioskToggle.text = "Focus Locked"
+            btnKioskToggle.alpha = 0.7f
+            btnKioskToggle.text = "Locked"
             btnKioskToggle.setIconResource(R.drawable.ic_lock)
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
-            btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
+            btnKioskToggle.strokeWidth = 0
 
             btnAllowedApps.isEnabled = false
             btnAllowedApps.alpha = 0.4f
-            btnAllowedApps.text = "Apps Locked"
+            btnAllowedApps.text = "Locked"
             btnAllowedApps.setIconResource(R.drawable.ic_lock)
 
             // Lock launcher switching buttons during focus session
@@ -372,6 +395,7 @@ class MainActivity : AppCompatActivity() {
             btnHomeSettings.isEnabled = false
             btnHomeSettings.alpha = 0.4f
 
+            applyFocusDrawerState(animate = false)
             startLiveSessionTimer()
         } else if (!isAdmin) {
             sessionTimer?.cancel()
@@ -382,24 +406,26 @@ class MainActivity : AppCompatActivity() {
             tvAdminBadge.text = "UNPROTECTED"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.red))
             scrollDurationPresets.visibility = View.VISIBLE
-            tvTimerDisplay.text = "Focus Duration: $selectedDurationMinutes min"
+            tvTimerDisplay.text = "Focus: ${selectedDurationMinutes}m"
             tvTimerSubtext.text = "Activate Device Admin to enable tamper protection"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
-            btnKioskToggle.text = "Activate Admin"
+            btnKioskToggle.text = "Activate"
             btnKioskToggle.setIconResource(R.drawable.ic_lock)
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
-            btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
+            btnKioskToggle.strokeWidth = 0
 
             btnAllowedApps.isEnabled = true
             btnAllowedApps.alpha = 1.0f
-            btnAllowedApps.text = "Allowed Apps"
+            btnAllowedApps.text = "Apps"
             btnAllowedApps.setIconResource(R.drawable.ic_apps)
 
             btnSwitchHome.isEnabled = true
             btnSwitchHome.alpha = 1.0f
             btnHomeSettings.isEnabled = true
             btnHomeSettings.alpha = 1.0f
+            isFocusPanelExpanded = true
+            applyFocusDrawerState(animate = false)
         } else if (!isAccessibility) {
             sessionTimer?.cancel()
             ivShieldIcon.setImageResource(R.drawable.ic_shield_alert)
@@ -409,51 +435,55 @@ class MainActivity : AppCompatActivity() {
             tvAdminBadge.text = "SETUP REQUIRED"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
             scrollDurationPresets.visibility = View.VISIBLE
-            tvTimerDisplay.text = "Focus Duration: $selectedDurationMinutes min"
+            tvTimerDisplay.text = "Focus: ${selectedDurationMinutes}m"
             tvTimerSubtext.text = "Enable GateFocus in Accessibility Settings to block Settings & apps"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
-            btnKioskToggle.text = "Enable App Blocker"
+            btnKioskToggle.text = "Enable"
             btnKioskToggle.setIconResource(R.drawable.ic_lock)
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
-            btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
+            btnKioskToggle.strokeWidth = 0
 
             btnAllowedApps.isEnabled = true
             btnAllowedApps.alpha = 1.0f
-            btnAllowedApps.text = "Allowed Apps"
+            btnAllowedApps.text = "Apps"
             btnAllowedApps.setIconResource(R.drawable.ic_apps)
 
             btnSwitchHome.isEnabled = true
             btnSwitchHome.alpha = 1.0f
             btnHomeSettings.isEnabled = true
             btnHomeSettings.alpha = 1.0f
+            isFocusPanelExpanded = true
+            applyFocusDrawerState(animate = false)
         } else if (!isDefaultLauncher()) {
             sessionTimer?.cancel()
             ivShieldIcon.setImageResource(R.drawable.ic_shield_alert)
             ivShieldIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.accent_yellow)
             tvProtectionStatus.text = "Home Launcher: Not Set"
             tvProtectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
-            tvAdminBadge.text = "SET AS HOME"
+            tvAdminBadge.text = "SET HOME"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
             scrollDurationPresets.visibility = View.VISIBLE
-            tvTimerDisplay.text = "Focus Duration: $selectedDurationMinutes min"
+            tvTimerDisplay.text = "Focus: ${selectedDurationMinutes}m"
             tvTimerSubtext.text = "Set GateFocus as default Home launcher to prevent navigation glitching"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
-            btnKioskToggle.text = "Set Default Launcher"
+            btnKioskToggle.text = "Set Home"
             btnKioskToggle.setIconResource(R.drawable.ic_home)
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
-            btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
+            btnKioskToggle.strokeWidth = 0
 
             btnAllowedApps.isEnabled = true
             btnAllowedApps.alpha = 1.0f
-            btnAllowedApps.text = "Allowed Apps"
+            btnAllowedApps.text = "Apps"
             btnAllowedApps.setIconResource(R.drawable.ic_apps)
 
             btnSwitchHome.isEnabled = true
             btnSwitchHome.alpha = 1.0f
             btnHomeSettings.isEnabled = true
             btnHomeSettings.alpha = 1.0f
+            isFocusPanelExpanded = true
+            applyFocusDrawerState(animate = false)
         } else {
             sessionTimer?.cancel()
             ivShieldIcon.setImageResource(R.drawable.ic_shield)
@@ -463,24 +493,25 @@ class MainActivity : AppCompatActivity() {
             tvAdminBadge.text = if (KioskManager.isDeviceOwner(this)) "DEVICE OWNER" else "READY"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, if (KioskManager.isDeviceOwner(this)) R.color.accent_green else R.color.accent))
             scrollDurationPresets.visibility = View.VISIBLE
-            tvTimerDisplay.text = "Focus Duration: $selectedDurationMinutes min"
+            tvTimerDisplay.text = "Focus: ${selectedDurationMinutes}m"
             tvTimerSubtext.text = if (KioskManager.isDeviceOwner(this)) "Full OS-level restrictions active. Select duration to begin." else "Select study duration and lock distractions"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
-            btnKioskToggle.text = "Start Focus (${selectedDurationMinutes}m)"
+            btnKioskToggle.text = "Start ${selectedDurationMinutes}m"
             btnKioskToggle.setIconResource(R.drawable.ic_lock)
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
-            btnKioskToggle.strokeColor = ContextCompat.getColorStateList(this, R.color.accent_green)
+            btnKioskToggle.strokeWidth = 0
 
             btnAllowedApps.isEnabled = true
             btnAllowedApps.alpha = 1.0f
-            btnAllowedApps.text = "Allowed Apps"
+            btnAllowedApps.text = "Apps"
             btnAllowedApps.setIconResource(R.drawable.ic_apps)
 
             btnSwitchHome.isEnabled = true
             btnSwitchHome.alpha = 1.0f
             btnHomeSettings.isEnabled = true
             btnHomeSettings.alpha = 1.0f
+            applyFocusDrawerState(animate = false)
         }
     }
 
@@ -771,10 +802,16 @@ class MainActivity : AppCompatActivity() {
                 text = subject
                 isCheckable = true
                 isChecked = (subject == selectedSubject)
-                setTextColor(ContextCompat.getColorStateList(this@MainActivity, R.color.text_primary))
-                setChipBackgroundColorResource(if (isChecked) R.color.accent else R.color.card_bg)
-                setChipStrokeColorResource(R.color.card_border)
-                chipStrokeWidth = 2f
+                textSize = 12f
+                chipCornerRadius = 48f
+                chipStrokeWidth = 0f
+                if (isChecked) {
+                    setTextColor(ContextCompat.getColor(this@MainActivity, R.color.primary_dark))
+                    setChipBackgroundColorResource(R.color.accent)
+                } else {
+                    setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
+                    chipBackgroundColor = android.content.res.ColorStateList.valueOf(0xFF141D2E.toInt())
+                }
                 setOnCheckedChangeListener { _, isChecked ->
                     if (isChecked) {
                         selectedSubject = subject

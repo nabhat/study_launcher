@@ -3,32 +3,43 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
-    android:backgroundTint="@color/card_bg"
-    app:cardCornerRadius="10dp"
-    app:cardElevation="2dp"
-    app:strokeColor="@color/card_border"
-    app:strokeWidth="1dp">
+    android:layout_marginBottom="8dp"
+    android:backgroundTint="#141D2E"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="0dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="14dp">
+        android:padding="12dp">
 
-        <ImageView
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="#33EF4444"
-            android:padding="10dp"
-            android:src="@drawable/ic_pdf"
-            app:tint="@color/red" />
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:backgroundTint="#22EF4444"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_pdf"
+                app:tint="@color/red" />
+        </com.google.android.material.card.MaterialCardView>
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="14dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -38,31 +49,36 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="2"
-                android:text="GATE Math Workbook 2026.pdf"
+                android:text="GATE Math Workbook.pdf"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvPdfInfo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_marginTop="2dp"
                 android:text="Workbook • Tap to solve"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnOpenPdf"
+            style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/primary_dark"
+            android:layout_height="36dp"
+            android:backgroundTint="#1E3A5F"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:paddingHorizontal="16dp"
             android:text="Solve"
             android:textColor="@color/accent"
-            app:cornerRadius="6dp"
-            app:strokeColor="@color/accent"
-            app:strokeWidth="1dp" />
+            android:textSize="12sp"
+            android:textStyle="bold"
+            app:cornerRadius="18dp"
+            app:strokeWidth="0dp" />
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>
