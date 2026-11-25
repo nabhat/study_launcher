@@ -75,12 +75,12 @@ class StudyProgressManager(context: Context) {
         return prefs.getString("last_played_video_path", null)
     }
 
-    fun savePreferredSpeedIndex(index: Int) {
-        prefs.edit().putInt("preferred_speed_index", index).apply()
+    fun savePreferredSpeed(speed: Float) {
+        prefs.edit().putFloat("preferred_speed_float", speed).apply()
     }
 
-    fun getPreferredSpeedIndex(): Int {
-        return prefs.getInt("preferred_speed_index", 0)
+    fun getPreferredSpeed(): Float {
+        return prefs.getFloat("preferred_speed_float", 1.0f)
     }
 
     fun setHideCompleted(hide: Boolean) {

@@ -11,19 +11,23 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.GestureDetector
+import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -34,8 +38,11 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.DefaultTimeBar
 import androidx.media3.ui.PlayerView
+import androidx.media3.ui.TimeBar
 import com.gatefocus.launcher.data.StudyProgressManager
 import com.gatefocus.launcher.data.TitleFormatter
 import com.google.android.material.button.MaterialButton
@@ -85,9 +92,9 @@ class VideoPlayerActivity : AppCompatActivity() {
     private var playlistTitles: ArrayList<String> = arrayListOf()
     private var currentIndex: Int = 0
 
-    private var currentSpeedIndex = 0
-    private val speeds = arrayOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
-    private val speedLabels = arrayOf("1.0x", "1.25x", "1.5x", "1.75x", "2.0x")
+    private var currentSpeed: Float = 1.0f
+    private val cycleSpeeds = arrayOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
+    private val allSpeedOptions = arrayOf(0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
 
     private var isZoomFill = false
     private var isSpeedBoostActive = false
@@ -106,6 +113,16 @@ class VideoPlayerActivity : AppCompatActivity() {
 
     private val pillHandler = Handler(Looper.getMainLooper())
     private var pillRunnable: Runnable? = null
+
+    private val autoSaveHandler = Handler(Looper.getMainLooper())
+    private val autoSaveRunnable = object : Runnable {
+        override fun run() {
+            if (player?.isPlaying == true) {
+                saveCurrentProgress()
+                autoSaveHandler.postDelayed(this, 15_000L)
+            }
+        }
+    }
 
     companion object {
         const val EXTRA_VIDEO_PATH = "extra_video_path"
@@ -143,12 +160,11 @@ class VideoPlayerActivity : AppCompatActivity() {
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContentView(R.layout.activity_video_player)
         enableImmersiveFullscreen()
 
         progressManager = StudyProgressManager(this)
-        currentSpeedIndex = progressManager.getPreferredSpeedIndex().coerceIn(0, speeds.lastIndex)
+        currentSpeed = progressManager.getPreferredSpeed().coerceIn(0.75f, 2.0f)
 
         playlistPaths = intent.getStringArrayListExtra(EXTRA_PLAYLIST_PATHS) ?: arrayListOf()
         playlistTitles = intent.getStringArrayListExtra(EXTRA_PLAYLIST_TITLES) ?: arrayListOf()
@@ -191,14 +207,17 @@ class VideoPlayerActivity : AppCompatActivity() {
 
         btnBack?.setOnClickListener { finish() }
         tvTitle.text = videoTitle
-        btnSpeed.text = speedLabels[currentSpeedIndex]
+        btnSpeed.text = formatSpeedLabel(currentSpeed)
 
         btnSpeed.setOnClickListener {
-            currentSpeedIndex = (currentSpeedIndex + 1) % speeds.size
-            progressManager.savePreferredSpeedIndex(currentSpeedIndex)
-            val selectedSpeed = speeds[currentSpeedIndex]
-            player?.playbackParameters = PlaybackParameters(selectedSpeed)
-            btnSpeed.text = speedLabels[currentSpeedIndex]
+            val idx = cycleSpeeds.indexOfFirst { abs(it - currentSpeed) < 0.01f }
+            val nextSpeed = cycleSpeeds[(idx + 1) % cycleSpeeds.size]
+            applyPlaybackSpeed(nextSpeed)
+        }
+
+        btnSpeed.setOnLongClickListener {
+            showSpeedPickerDialog()
+            true
         }
 
         btnPlayPause.setOnClickListener {
@@ -230,8 +249,71 @@ class VideoPlayerActivity : AppCompatActivity() {
 
         btnFinishPlayer.setOnClickListener { finish() }
 
+        setupLiveScrubbing()
         setupGestures()
         initializePlayer()
+    }
+
+    private fun formatSpeedLabel(speed: Float): String = "${speed}x"
+
+    private fun applyPlaybackSpeed(speed: Float) {
+        currentSpeed = speed
+        progressManager.savePreferredSpeed(speed)
+        player?.playbackParameters = PlaybackParameters(speed)
+        btnSpeed.text = formatSpeedLabel(speed)
+    }
+
+    private fun showSpeedPickerDialog() {
+        val labels = allSpeedOptions.map { formatSpeedLabel(it) }.toTypedArray()
+        val checkedIdx = allSpeedOptions.indexOfFirst { abs(it - currentSpeed) < 0.01f }
+        AlertDialog.Builder(this)
+            .setTitle("Playback Speed")
+            .setSingleChoiceItems(labels, checkedIdx) { dialog, which ->
+                applyPlaybackSpeed(allSpeedOptions[which])
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun setupLiveScrubbing() {
+        val timeBar = findViewById<DefaultTimeBar>(R.id.exo_progress) ?: return
+        var wasPlayingBeforeScrub = false
+        var lastScrubSeekMs = 0L
+
+        timeBar.addListener(object : TimeBar.OnScrubListener {
+            override fun onScrubStart(timeBar: TimeBar, position: Long) {
+                val exo = player ?: return
+                wasPlayingBeforeScrub = exo.isPlaying
+                if (wasPlayingBeforeScrub) {
+                    exo.pause()
+                }
+                playerView.controllerShowTimeoutMs = 0
+                exo.setSeekParameters(SeekParameters.CLOSEST_SYNC)
+                lastScrubSeekMs = SystemClock.elapsedRealtime()
+                exo.seekTo(position)
+            }
+
+            override fun onScrubMove(timeBar: TimeBar, position: Long) {
+                val exo = player ?: return
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastScrubSeekMs >= 120L) {
+                    lastScrubSeekMs = now
+                    exo.seekTo(position)
+                }
+            }
+
+            override fun onScrubStop(timeBar: TimeBar, position: Long, canceled: Boolean) {
+                val exo = player ?: return
+                playerView.controllerShowTimeoutMs = 3000
+                exo.setSeekParameters(SeekParameters.DEFAULT)
+                exo.seekTo(position)
+                if (wasPlayingBeforeScrub && !canceled) {
+                    exo.play()
+                }
+                playerView.showController()
+            }
+        })
     }
 
     private fun enableImmersiveFullscreen() {
@@ -349,6 +431,7 @@ class VideoPlayerActivity : AppCompatActivity() {
                 val exo = player ?: return
                 if (!exo.isPlaying) return
                 isSpeedBoostActive = true
+                playerView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 exo.playbackParameters = PlaybackParameters(2.0f)
                 showTopPill("2.0x Speed", autoHideMs = 0L)
             }
@@ -432,7 +515,7 @@ class VideoPlayerActivity : AppCompatActivity() {
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (isSpeedBoostActive) {
                         isSpeedBoostActive = false
-                        player?.playbackParameters = PlaybackParameters(speeds[currentSpeedIndex])
+                        player?.playbackParameters = PlaybackParameters(currentSpeed)
                         hideTopPill()
                         true
                     } else if (hasScrolled) {
@@ -588,9 +671,13 @@ class VideoPlayerActivity : AppCompatActivity() {
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     activePlaybackStartMs = System.currentTimeMillis()
                     layoutLectureComplete.visibility = View.GONE
+                    startAutoSaveLoop()
                 } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    stopAutoSaveLoop()
                     trackElapsedStudyTime()
                 }
                 syncPlayPauseIcon(isPlaying)
@@ -614,14 +701,24 @@ class VideoPlayerActivity : AppCompatActivity() {
         val isDone = progressManager.isVideoCompleted(videoFile.absolutePath)
         if (savedPosition > 0 && !(resetIfCompleted && isDone)) {
             exo.seekTo(savedPosition)
+            showTopPill("Resumed where you left off", 1400L)
         } else {
             exo.seekTo(0L)
         }
 
-        exo.playbackParameters = PlaybackParameters(speeds[currentSpeedIndex])
+        exo.playbackParameters = PlaybackParameters(currentSpeed)
         exo.prepare()
         exo.playWhenReady = true
         syncPlayPauseIcon(true)
+    }
+
+    private fun startAutoSaveLoop() {
+        autoSaveHandler.removeCallbacks(autoSaveRunnable)
+        autoSaveHandler.postDelayed(autoSaveRunnable, 15_000L)
+    }
+
+    private fun stopAutoSaveLoop() {
+        autoSaveHandler.removeCallbacks(autoSaveRunnable)
     }
 
     private fun playLectureAtIndex(index: Int) {
@@ -817,6 +914,8 @@ class VideoPlayerActivity : AppCompatActivity() {
         seekRunnable?.let { seekHandler.removeCallbacks(it) }
         hudRunnable?.let { hudHandler.removeCallbacks(it) }
         pillRunnable?.let { pillHandler.removeCallbacks(it) }
+        stopAutoSaveLoop()
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         saveCurrentProgress()
         mediaSession?.isActive = false
         mediaSession?.release()
