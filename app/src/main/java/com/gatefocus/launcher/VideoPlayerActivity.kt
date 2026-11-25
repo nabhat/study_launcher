@@ -15,6 +15,7 @@ import android.provider.Settings
 import android.view.GestureDetector
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewConfiguration
 import android.widget.Button
@@ -63,7 +64,6 @@ class VideoPlayerActivity : AppCompatActivity() {
     private lateinit var tvTitle: TextView
     private lateinit var btnSpeed: Button
     private lateinit var btnPlayPause: ImageButton
-    private lateinit var btnAspectFit: ImageButton
 
     // VLC Gesture HUD Elements
     private lateinit var layoutBrightnessIndicator: LinearLayout
@@ -103,6 +103,9 @@ class VideoPlayerActivity : AppCompatActivity() {
 
     private val hudHandler = Handler(Looper.getMainLooper())
     private var hudRunnable: Runnable? = null
+
+    private val pillHandler = Handler(Looper.getMainLooper())
+    private var pillRunnable: Runnable? = null
 
     companion object {
         const val EXTRA_VIDEO_PATH = "extra_video_path"
@@ -184,7 +187,6 @@ class VideoPlayerActivity : AppCompatActivity() {
         val btnRew = findViewById<ImageButton>(R.id.exo_rew)
         btnPlayPause = findViewById(R.id.btnPlayPause)
         val btnFfwd = findViewById<ImageButton>(R.id.exo_ffwd)
-        btnAspectFit = findViewById(R.id.btnAspectFit)
         val btnBluetooth = findViewById<ImageButton>(R.id.btnBluetooth)
 
         btnBack?.setOnClickListener { finish() }
@@ -205,18 +207,6 @@ class VideoPlayerActivity : AppCompatActivity() {
 
         btnRew?.setOnClickListener { rewind10s() }
         btnFfwd?.setOnClickListener { forward10s() }
-
-        btnAspectFit.setOnClickListener {
-            isZoomFill = !isZoomFill
-            playerView.resizeMode = if (isZoomFill) {
-                AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-            } else {
-                AspectRatioFrameLayout.RESIZE_MODE_FIT
-            }
-            btnAspectFit.setImageResource(
-                if (isZoomFill) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen
-            )
-        }
 
         btnBluetooth?.setOnClickListener {
             BluetoothDialogHelper.show(this)
@@ -258,6 +248,29 @@ class VideoPlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun showTopPill(label: String, autoHideMs: Long = 900L) {
+        pillRunnable?.let { pillHandler.removeCallbacks(it) }
+        tvSpeedBoostPill.text = label
+        tvSpeedBoostPill.alpha = 1.0f
+        tvSpeedBoostPill.visibility = View.VISIBLE
+        if (autoHideMs > 0L) {
+            val runnable = Runnable {
+                tvSpeedBoostPill.animate()
+                    .alpha(0f)
+                    .setDuration(200)
+                    .withEndAction { tvSpeedBoostPill.visibility = View.GONE }
+                    .start()
+            }
+            pillRunnable = runnable
+            pillHandler.postDelayed(runnable, autoHideMs)
+        }
+    }
+
+    private fun hideTopPill() {
+        pillRunnable?.let { pillHandler.removeCallbacks(it) }
+        tvSpeedBoostPill.visibility = View.GONE
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     private fun setupGestures() {
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -271,6 +284,38 @@ class VideoPlayerActivity : AppCompatActivity() {
         var isAdjustingVolume = false
         var initialBrightness = 0.5f
         var initialVolumeFraction = 0.5f
+        var pinchHandled = false
+
+        val scaleGestureDetector = ScaleGestureDetector(
+            this,
+            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+                    pinchHandled = false
+                    return true
+                }
+
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    if (pinchHandled || layoutLectureComplete.visibility == View.VISIBLE) return true
+                    val factor = detector.scaleFactor
+                    if (factor > 1.12f) {
+                        pinchHandled = true
+                        if (!isZoomFill) {
+                            isZoomFill = true
+                            playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        }
+                        showTopPill("Zoom: Fill")
+                    } else if (factor < 0.88f) {
+                        pinchHandled = true
+                        if (isZoomFill) {
+                            isZoomFill = false
+                            playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        }
+                        showTopPill("Fit to Screen")
+                    }
+                    return true
+                }
+            }
+        )
 
         val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean = true
@@ -300,17 +345,24 @@ class VideoPlayerActivity : AppCompatActivity() {
             }
 
             override fun onLongPress(e: MotionEvent) {
-                if (hasScrolled || layoutLectureComplete.visibility == View.VISIBLE) return
+                if (hasScrolled || scaleGestureDetector.isInProgress || layoutLectureComplete.visibility == View.VISIBLE) return
                 val exo = player ?: return
                 if (!exo.isPlaying) return
                 isSpeedBoostActive = true
                 exo.playbackParameters = PlaybackParameters(2.0f)
-                tvSpeedBoostPill.alpha = 1.0f
-                tvSpeedBoostPill.visibility = View.VISIBLE
+                showTopPill("2.0x Speed", autoHideMs = 0L)
             }
         })
 
         playerView.setOnTouchListener { _, event ->
+            scaleGestureDetector.onTouchEvent(event)
+            if (scaleGestureDetector.isInProgress || event.pointerCount > 1) {
+                hasScrolled = false
+                isAdjustingBrightness = false
+                isAdjustingVolume = false
+                return@setOnTouchListener true
+            }
+
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     startX = event.x
@@ -381,7 +433,7 @@ class VideoPlayerActivity : AppCompatActivity() {
                     if (isSpeedBoostActive) {
                         isSpeedBoostActive = false
                         player?.playbackParameters = PlaybackParameters(speeds[currentSpeedIndex])
-                        tvSpeedBoostPill.visibility = View.GONE
+                        hideTopPill()
                         true
                     } else if (hasScrolled) {
                         scheduleHudFadeOut()
@@ -764,6 +816,7 @@ class VideoPlayerActivity : AppCompatActivity() {
         super.onDestroy()
         seekRunnable?.let { seekHandler.removeCallbacks(it) }
         hudRunnable?.let { hudHandler.removeCallbacks(it) }
+        pillRunnable?.let { pillHandler.removeCallbacks(it) }
         saveCurrentProgress()
         mediaSession?.isActive = false
         mediaSession?.release()

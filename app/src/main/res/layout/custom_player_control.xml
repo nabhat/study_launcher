@@ -51,18 +51,6 @@
             android:textSize="13sp"
             android:textStyle="bold" />
 
-        <!-- Aspect Ratio Toggle (Fit / Fill) -->
-        <ImageButton
-            android:id="@+id/btnAspectFit"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/bg_circle_button"
-            android:contentDescription="Toggle Fit or Fill"
-            android:padding="8dp"
-            android:src="@drawable/ic_fullscreen"
-            app:tint="@color/white" />
-
         <!-- Bluetooth Headphones Button -->
         <ImageButton
             android:id="@+id/btnBluetooth"
