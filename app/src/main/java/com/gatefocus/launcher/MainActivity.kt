@@ -306,6 +306,16 @@ class MainActivity : AppCompatActivity() {
         sessionTimer?.cancel()
     }
 
+    private lateinit var btnDurationCustom: MaterialButton
+
+    private fun formatDurationLabel(minutes: Int): String {
+        return when {
+            minutes < 60 -> "${minutes}m"
+            minutes % 60 == 0 -> "${minutes / 60}h"
+            else -> "${minutes / 60}h ${minutes % 60}m"
+        }
+    }
+
     private fun setupDurationPresets() {
         val pairs = listOf(
             Pair(R.id.btnDuration15, 15),
@@ -313,24 +323,93 @@ class MainActivity : AppCompatActivity() {
             Pair(R.id.btnDuration45, 45),
             Pair(R.id.btnDuration60, 60),
             Pair(R.id.btnDuration90, 90),
-            Pair(R.id.btnDuration120, 120)
+            Pair(R.id.btnDuration120, 120),
+            Pair(R.id.btnDuration180, 180),
+            Pair(R.id.btnDuration240, 240),
+            Pair(R.id.btnDuration360, 360),
+            Pair(R.id.btnDuration480, 480)
         )
 
+        durationButtons.clear()
+        var matchedBtn: MaterialButton? = null
         for ((btnId, minutes) in pairs) {
             val btn = findViewById<MaterialButton>(btnId)
             durationButtons.add(btn)
+            if (minutes == selectedDurationMinutes) {
+                matchedBtn = btn
+            }
             btn.setOnClickListener {
                 selectedDurationMinutes = minutes
                 KioskManager.setSelectedDuration(this, minutes)
+                btnDurationCustom.text = "Custom"
                 highlightSelectedPreset(btn)
                 updateProtectionCardStatus()
             }
         }
 
-        val initialBtn = durationButtons.firstOrNull {
-            it.text.toString().startsWith("${selectedDurationMinutes}m")
-        } ?: findViewById(R.id.btnDuration45)
-        highlightSelectedPreset(initialBtn)
+        btnDurationCustom = findViewById(R.id.btnDurationCustom)
+        durationButtons.add(btnDurationCustom)
+        btnDurationCustom.setOnClickListener {
+            showCustomDurationDialog()
+        }
+
+        if (matchedBtn != null) {
+            btnDurationCustom.text = "Custom"
+            highlightSelectedPreset(matchedBtn)
+        } else {
+            btnDurationCustom.text = "Custom (${formatDurationLabel(selectedDurationMinutes)})"
+            highlightSelectedPreset(btnDurationCustom)
+        }
+    }
+
+    private fun showCustomDurationDialog() {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(48, 24, 48, 8)
+        }
+        val etHours = EditText(this).apply {
+            hint = "Hours"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            setText((selectedDurationMinutes / 60).toString())
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val tvHrs = TextView(this).apply {
+            text = "h  "
+            textSize = 15f
+            setPadding(8, 0, 16, 0)
+        }
+        val etMinutes = EditText(this).apply {
+            hint = "Min"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            setText((selectedDurationMinutes % 60).toString())
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val tvMins = TextView(this).apply {
+            text = "m"
+            textSize = 15f
+            setPadding(8, 0, 0, 0)
+        }
+        container.addView(etHours)
+        container.addView(tvHrs)
+        container.addView(etMinutes)
+        container.addView(tvMins)
+
+        AlertDialog.Builder(this)
+            .setTitle("Custom Focus Duration")
+            .setMessage("Enter how long to lock distractions (up to 24h):")
+            .setView(container)
+            .setPositiveButton("Set") { _, _ ->
+                val hrs = etHours.text.toString().toIntOrNull() ?: 0
+                val mins = etMinutes.text.toString().toIntOrNull() ?: 0
+                val total = (hrs * 60 + mins).coerceIn(5, 1440)
+                selectedDurationMinutes = total
+                KioskManager.setSelectedDuration(this, total)
+                btnDurationCustom.text = "Custom (${formatDurationLabel(total)})"
+                highlightSelectedPreset(btnDurationCustom)
+                updateProtectionCardStatus()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun applyFocusDrawerState(animate: Boolean) {
@@ -402,7 +481,7 @@ class MainActivity : AppCompatActivity() {
             tvAdminBadge.text = "UNPROTECTED"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.red))
             scrollDurationPresets.visibility = View.VISIBLE
-            tvTimerDisplay.text = "Focus: ${selectedDurationMinutes}m"
+            tvTimerDisplay.text = "Focus: ${formatDurationLabel(selectedDurationMinutes)}"
             tvTimerSubtext.text = "Activate Device Admin to enable tamper protection"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
@@ -431,7 +510,7 @@ class MainActivity : AppCompatActivity() {
             tvAdminBadge.text = "SETUP REQUIRED"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
             scrollDurationPresets.visibility = View.VISIBLE
-            tvTimerDisplay.text = "Focus: ${selectedDurationMinutes}m"
+            tvTimerDisplay.text = "Focus: ${formatDurationLabel(selectedDurationMinutes)}"
             tvTimerSubtext.text = "Enable GateFocus in Accessibility Settings to block Settings & apps"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
@@ -460,7 +539,7 @@ class MainActivity : AppCompatActivity() {
             tvAdminBadge.text = "SET HOME"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_yellow))
             scrollDurationPresets.visibility = View.VISIBLE
-            tvTimerDisplay.text = "Focus: ${selectedDurationMinutes}m"
+            tvTimerDisplay.text = "Focus: ${formatDurationLabel(selectedDurationMinutes)}"
             tvTimerSubtext.text = "Set GateFocus as default Home launcher to prevent navigation glitching"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
@@ -489,11 +568,11 @@ class MainActivity : AppCompatActivity() {
             tvAdminBadge.text = if (KioskManager.isDeviceOwner(this)) "DEVICE OWNER" else "READY"
             tvAdminBadge.setTextColor(ContextCompat.getColor(this, if (KioskManager.isDeviceOwner(this)) R.color.accent_green else R.color.accent))
             scrollDurationPresets.visibility = View.VISIBLE
-            tvTimerDisplay.text = "Focus: ${selectedDurationMinutes}m"
+            tvTimerDisplay.text = "Focus: ${formatDurationLabel(selectedDurationMinutes)}"
             tvTimerSubtext.text = if (KioskManager.isDeviceOwner(this)) "Full OS-level restrictions active. Select duration to begin." else "Select study duration and lock distractions"
             btnKioskToggle.isEnabled = true
             btnKioskToggle.alpha = 1.0f
-            btnKioskToggle.text = "Start ${selectedDurationMinutes}m"
+            btnKioskToggle.text = "Start ${formatDurationLabel(selectedDurationMinutes)}"
             btnKioskToggle.setIconResource(R.drawable.ic_lock)
             btnKioskToggle.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             btnKioskToggle.strokeWidth = 0
