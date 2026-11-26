@@ -193,8 +193,8 @@ object KioskManager {
             dpm.setUninstallBlocked(admin, context.packageName, true)
             dpm.clearUserRestriction(admin, UserManager.DISALLOW_UNINSTALL_APPS)
 
-            // Permanently block Safe Mode reboot & Factory Reset
-            dpm.addUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
+            // Allow Safe Mode recovery when needed while keeping Factory Reset blocked
+            dpm.clearUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
             dpm.addUserRestriction(admin, UserManager.DISALLOW_FACTORY_RESET)
 
             // Lock App Info controls and status bar only during active Focus Sessions
