@@ -188,21 +188,23 @@ object KioskManager {
             val whitelist = getAllowedApps(context).toTypedArray()
             dpm.setLockTaskPackages(admin, whitelist)
 
-            // Block uninstallation of GateFocus itself permanently (OS package lock),
-            // while allowing user to uninstall other third-party apps when Focus is idle
+            // Block uninstallation of GateFocus and all apps (OS level)
             dpm.setUninstallBlocked(admin, context.packageName, true)
-            dpm.clearUserRestriction(admin, UserManager.DISALLOW_UNINSTALL_APPS)
+            dpm.addUserRestriction(admin, UserManager.DISALLOW_UNINSTALL_APPS)
 
-            // Allow Safe Mode recovery when needed while keeping Factory Reset blocked
-            dpm.clearUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
+            // Block Safe Mode reboot
+            dpm.addUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
+
+            // Block app management / force-stop in settings
+            dpm.addUserRestriction(admin, UserManager.DISALLOW_APPS_CONTROL)
+
+            // Block factory reset
             dpm.addUserRestriction(admin, UserManager.DISALLOW_FACTORY_RESET)
 
-            // Lock App Info controls and status bar only during active Focus Sessions
+            // Block status bar expansion during active focus lock
             if (isFocusLockActive(context)) {
-                dpm.addUserRestriction(admin, UserManager.DISALLOW_APPS_CONTROL)
                 dpm.setStatusBarDisabled(admin, true)
             } else {
-                dpm.clearUserRestriction(admin, UserManager.DISALLOW_APPS_CONTROL)
                 dpm.setStatusBarDisabled(admin, false)
             }
         } catch (e: Exception) {
