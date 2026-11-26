@@ -96,7 +96,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:text="Tap to open • Long-press an app to allow/remove in Focus Sessions"
+        android:text="Tap an app to open"
         android:textColor="@color/text_secondary"
         android:textSize="11sp" />
 

@@ -235,9 +235,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Open built-in Apps Drawer directly inside GateFocus
+        // Open built-in Apps Drawer only when Focus Session is not active
         btnSwitchHome.setOnClickListener {
-            AppsDrawerActivity.start(this)
+            if (KioskManager.isFocusLockActive(this)) {
+                Toast.makeText(this, "Apps list is locked while Focus Session is active.", Toast.LENGTH_SHORT).show()
+            } else {
+                AppsDrawerActivity.start(this)
+            }
         }
 
         btnHomeSettings.setOnClickListener {
@@ -464,9 +468,9 @@ class MainActivity : AppCompatActivity() {
             btnAllowedApps.text = "Locked"
             btnAllowedApps.setIconResource(R.drawable.ic_lock)
 
-            // Allow opening built-in Apps Drawer even during Focus (shows only allowed study apps)
-            btnSwitchHome.isEnabled = true
-            btnSwitchHome.alpha = 1.0f
+            // Lock built-in Apps Drawer and launcher switching buttons during active Focus Session
+            btnSwitchHome.isEnabled = false
+            btnSwitchHome.alpha = 0.4f
             btnHomeSettings.isEnabled = false
             btnHomeSettings.alpha = 0.4f
 
